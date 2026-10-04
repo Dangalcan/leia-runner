@@ -1,9 +1,10 @@
 const { redisClient } = require('../config/redis');
+const { CONVERSATION_KEY_PREFIX } = require('../models/conversationStore');
 
 class CacheService {
   constructor() {
     this.sessionPrefix = 'session:';
-    this.conversationPrefix = 'session:conversation:';
+    this.conversationPrefix = CONVERSATION_KEY_PREFIX;
     this.leiaMetaPrefix = 'leia:meta:';
     this.multiLeiaPrefix = 'multi-leia:';
     this.multiLeiaLockPrefix = 'multi-leia:lock:';
@@ -146,10 +147,13 @@ class CacheService {
   filterKeysBySession(keys, sessionId) {
     const actorSessionPrefix = `${this.sessionPrefix}${sessionId}:actor:`;
     const actorConversationPrefix = `${this.conversationPrefix}${sessionId}:actor:`;
+    const routerSessionId = `${sessionId}:orchestrator`;
     return keys.filter(key =>
       key === `${this.sessionPrefix}${sessionId}` ||
       key === `${this.leiaMetaPrefix}${sessionId}` ||
       key === `${this.conversationPrefix}${sessionId}` ||
+      key === `${this.sessionPrefix}${routerSessionId}` ||
+      key === `${this.conversationPrefix}${routerSessionId}` ||
       key === `${this.multiLeiaPrefix}${sessionId}` ||
       key === `${this.multiLeiaLockPrefix}${sessionId}` ||
       key.startsWith(actorSessionPrefix) ||

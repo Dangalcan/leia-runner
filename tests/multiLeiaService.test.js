@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
@@ -65,6 +65,12 @@ function createRuntime(maxInternalTurns = 2) {
     lastPartial: null,
   };
 }
+
+// Session TTL refreshes go to Redis, which these tests replace with spies on
+// get/set/del only.
+beforeEach(() => {
+  vi.spyOn(sessionService, 'touchSession').mockResolvedValue();
+});
 
 describe('MultiLEIA partial traversal recovery', () => {
   afterEach(() => {

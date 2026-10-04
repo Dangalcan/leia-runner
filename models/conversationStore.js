@@ -1,4 +1,7 @@
 const { redisClient } = require('../config/redis');
+const { getSessionTtlSeconds } = require('../config/sessionTtl');
+
+const CONVERSATION_KEY_PREFIX = 'conversation:';
 
 /**
  * ConversationStore manages conversation history for any provider that requires context management.
@@ -9,12 +12,12 @@ class ConversationStore {
   /**
    * Creates a new ConversationStore instance
    * @param {Object} options - Configuration options
-   * @param {string} options.prefix - Redis key prefix (default: 'session:conversation:')
+   * @param {string} options.prefix - Redis key prefix (default: 'conversation:')
    * @param {string} options.providerName - Provider name for env var lookup (default: generic settings)
    * @param {number} options.defaultMaxMessages - Default max messages when not configured (default: 60)
    */
   constructor(options = {}) {
-    this.keyPrefix = options.prefix || 'conversation:';
+    this.keyPrefix = options.prefix || CONVERSATION_KEY_PREFIX;
     this.providerName = options.providerName || '';
     this.defaultMaxMessages = options.defaultMaxMessages || 60;
     this.maxMessages = this.parseMaxMessages();
@@ -175,6 +178,7 @@ class ConversationStore {
   async buildConversationForRequest(sessionId, systemInstruction, userMessage) {
     await this.ensureSystemMessage(sessionId, systemInstruction);
     await this.appendMessage(sessionId, 'user', userMessage);
+    await this.refreshTtl(sessionId);
     return this.getConversation(sessionId);
   }
 
@@ -186,6 +190,21 @@ class ConversationStore {
    */
   async storeAssistantResponse(sessionId, assistantMessage) {
     await this.appendMessage(sessionId, 'assistant', assistantMessage);
+    await this.refreshTtl(sessionId);
+  }
+
+  /**
+   * Restarts the expiration of the conversation history, so it lives as long
+   * as the session it belongs to (see config/sessionTtl.js)
+   * @param {string} sessionId - Session identifier
+   * @returns {Promise<void>}
+   */
+  async refreshTtl(sessionId) {
+    const ttlSeconds = getSessionTtlSeconds();
+
+    if (ttlSeconds > 0) {
+      await redisClient.expire(this.getConversationKey(sessionId), ttlSeconds);
+    }
   }
 
   /**
@@ -199,3 +218,4 @@ class ConversationStore {
 }
 
 module.exports.ConversationStore = ConversationStore;
+module.exports.CONVERSATION_KEY_PREFIX = CONVERSATION_KEY_PREFIX;
