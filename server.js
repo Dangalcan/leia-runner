@@ -10,7 +10,9 @@ const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// Same limit as index.js: a MultiLEIA start carries every actor's full LEIA and
+// easily exceeds express's 100 KB default, which answered 413.
+app.use(express.json({ limit: '50mb' }));
 
 // Configurar Swagger UI
 app.use('/openapi', express.static(path.join(__dirname, 'api')));
