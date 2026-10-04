@@ -1,0 +1,11 @@
+type: object
+properties:
+  sessionId:
+    type: string
+    example: session-123
+  result:
+    type: string
+    example: Student solution text
+required:
+  - sessionId
+  - result

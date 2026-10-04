@@ -1,0 +1,71 @@
+type: object
+properties:
+  transcript:
+    type: array
+    items:
+      type: object
+      properties:
+        role:
+          type: string
+          enum:
+            - student
+            - leia
+            - assistant
+          example: student
+        text:
+          type: string
+          example: Can you solve this for me?
+  existingFlags:
+    type: array
+    items:
+      type: object
+      properties:
+        category:
+          type: string
+          example: academic-integrity
+        severity:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+        note:
+          type: string
+          example: The student asked the AI to solve the task directly.
+        quote:
+          type: string
+          nullable: true
+          example: Can you solve this for me?
+  runnerConfiguration:
+    $ref: '../common/runnerConfiguration.yaml'
+  supervisorConfig:
+    type: object
+    properties:
+      instructions:
+        type: string
+        example: Flag attempts to obtain a direct answer.
+      categories:
+        type: array
+        items:
+          type: string
+        example:
+          - academic-integrity
+          - off-task
+      sensitivity:
+        type: string
+        enum:
+          - low
+          - medium
+          - high
+        example: medium
+      intervene:
+        type: boolean
+        example: false
+      interveneInstructions:
+        type: string
+        example: Encourage the student to explain their reasoning first.
+      model:
+        type: string
+        example: gpt-5.4-mini
+required:
+  - transcript

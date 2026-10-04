@@ -1,0 +1,63 @@
+post:
+  tags:
+    - Problem Chat v1
+  operationId: uploadProblemChatFile
+  summary: Upload a PDF to a problem-chat session
+  parameters:
+    - name: chatId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: 550e8400-e29b-41d4-a716-446655440000
+  requestBody:
+    required: true
+    content:
+      multipart/form-data:
+        schema:
+          type: object
+          properties:
+            file:
+              type: string
+              format: binary
+          required:
+            - file
+  responses:
+    '201':
+      description: File uploaded successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/problemChat/fileUploadResponse.yaml'
+    '400':
+      description: Missing PDF file.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: A PDF file is required (multipart field "file").
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '404':
+      description: Problem-chat session not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/problemChat/sessionNotFoundError.yaml'
+          example:
+            error: Failed to upload file
+            message: Problem-chat session not found
+    '500':
+      description: Failed to upload file.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/error.yaml'

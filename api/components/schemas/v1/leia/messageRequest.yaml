@@ -1,0 +1,43 @@
+type: object
+properties:
+  message:
+    type: string
+    example: Hello, can you help me start?
+  tools:
+    type: array
+    items:
+      type: object
+      properties:
+        name:
+          type: string
+          example: get_current_problem
+        description:
+          type: string
+          example: Returns the current problem spec.
+        parameters:
+          type: object
+          additionalProperties: true
+      required:
+        - name
+        - parameters
+  toolResults:
+    type: array
+    items:
+      type: object
+      properties:
+        callId:
+          type: string
+          example: call_abc123
+        output:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: array
+              items: {}
+            - type: object
+              additionalProperties: true
+      required:
+        - callId
+        - output
+description: Send either a message or toolResults.

@@ -1,0 +1,42 @@
+post:
+  tags:
+    - Leias v1
+  operationId: createLeia
+  summary: Create a new LEIA runtime session
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/leia/createLeiaRequest.yaml'
+  responses:
+    '201':
+      description: LEIA session created successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/leia/createLeiaResponse.yaml'
+    '400':
+      description: sessionId or leia is missing.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/error.yaml'
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '409':
+      description: Session already exists.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/leia/sessionConflictError.yaml'
+    '500':
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/error.yaml'

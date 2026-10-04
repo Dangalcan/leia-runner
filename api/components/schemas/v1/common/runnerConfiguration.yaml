@@ -1,0 +1,17 @@
+type: object
+properties:
+  provider:
+    type: string
+    example: openai-responses
+  modelName:
+    type: string
+    example: gpt-4o-mini
+  apiKeyId:
+    type: string
+    example: 64f8a62fd2f4b7c7c5b8a123
+  apiKeyRequesterId:
+    type: string
+    example: 64f8a62fd2f4b7c7c5b8a456
+  lukeConfig:
+    $ref: './lukeConfig.yaml'
+description: Runtime model and API key configuration.

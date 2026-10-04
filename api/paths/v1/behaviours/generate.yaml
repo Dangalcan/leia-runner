@@ -1,0 +1,67 @@
+post:
+  tags:
+    - Generation v1
+  operationId: generateBehaviour
+  summary: Generate a behaviour from an example
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/generation/behaviourGenerateRequest.yaml'
+  responses:
+    '200':
+      description: Behaviour generated successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/generation/generateResponse.yaml'
+    '400':
+      description: subject or exampleBehaviour is missing.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+            required:
+              - error
+          examples:
+            subjectRequired:
+              summary: Subject is missing
+              value:
+                error: Subject is required
+            exampleBehaviourRequired:
+              summary: Example behaviour is missing
+              value:
+                error: Example behaviour is required
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '500':
+      description: Internal server error or provider configuration error.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+            required:
+              - error
+          examples:
+            providerConfigurationError:
+              summary: AI provider configuration error
+              value:
+                error: AI provider configuration error
+            generationFailed:
+              summary: Behaviour generation failed
+              value:
+                error: Failed to generate behaviour
+                message: Unexpected error message

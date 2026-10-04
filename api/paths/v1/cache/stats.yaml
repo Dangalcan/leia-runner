@@ -1,0 +1,33 @@
+get:
+  tags:
+    - Cache v1
+  operationId: getCacheStats
+  summary: Get runner cache statistics
+  responses:
+    '200':
+      description: Cache statistics.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/cache/statsResponse.yaml'
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '500':
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Error interno del servidor obteniendo estadísticas de caché
+              details:
+                type: string
+                example: Unexpected error message
+            required:
+              - error

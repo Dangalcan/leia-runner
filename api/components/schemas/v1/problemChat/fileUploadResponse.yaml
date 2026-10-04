@@ -1,0 +1,11 @@
+type: object
+properties:
+  fileId:
+    type: string
+    example: file_abc123
+  filename:
+    type: string
+    example: activity.pdf
+  bytes:
+    type: number
+    example: 123456

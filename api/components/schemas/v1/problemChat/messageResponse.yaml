@@ -1,0 +1,39 @@
+type: object
+oneOf:
+  - type: object
+    properties:
+      message:
+        type: string
+        example: I created a draft problem.
+      responseId:
+        type: string
+        example: resp_abc123
+    required:
+      - message
+      - responseId
+  - type: object
+    properties:
+      toolCalls:
+        type: array
+        items:
+          type: object
+          properties:
+            callId:
+              type: string
+              example: call_abc123
+            name:
+              type: string
+              example: get_current_problem
+            arguments:
+              type: string
+              example: '{}'
+          required:
+            - callId
+            - name
+            - arguments
+      responseId:
+        type: string
+        example: resp_abc123
+    required:
+      - toolCalls
+      - responseId

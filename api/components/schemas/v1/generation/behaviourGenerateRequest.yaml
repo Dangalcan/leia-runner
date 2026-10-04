@@ -1,0 +1,53 @@
+type: object
+properties:
+  subject:
+    type: string
+    example: Medical interview practice
+  additionalDetails:
+    type: string
+    example: The AI should act as a hesitant patient.
+  exampleBehaviour:
+    type: object
+    properties:
+      apiVersion:
+        type: string
+        example: v1
+      metadata:
+        type: object
+        properties:
+          name:
+            type: string
+            example: medical-interview-baseline
+          version:
+            type: string
+            example: 1.0.0
+        required:
+          - name
+          - version
+      spec:
+        type: object
+        properties:
+          description:
+            type: string
+            example: Act as a cautious patient who answers directly but briefly.
+          role:
+            type: string
+            example: patient
+          tooltip:
+            type: string
+            example: Interview behaviour for medical practice.
+          process:
+            type: array
+            items:
+              type: string
+            example:
+              - requirements-elicitation
+        required:
+          - description
+          - role
+          - tooltip
+    required:
+      - spec
+required:
+  - subject
+  - exampleBehaviour

@@ -1,0 +1,14 @@
+type: object
+properties:
+  error:
+    type: string
+    example: 'Session with ID: session-123 already exists'
+  sessionId:
+    type: string
+    example: session-123
+  modelName:
+    type: string
+    example: gpt-4o-mini
+  created:
+    type: boolean
+    example: false

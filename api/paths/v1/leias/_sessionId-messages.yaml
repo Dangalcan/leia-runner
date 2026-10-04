@@ -1,0 +1,49 @@
+post:
+  tags:
+    - Leias v1
+  operationId: sendLeiaMessage
+  summary: Send a message to a LEIA runtime session
+  parameters:
+    - name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: session-123
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/leia/messageRequest.yaml'
+  responses:
+    '200':
+      description: Message processed successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/leia/messageResponse.yaml'
+    '400':
+      description: sessionId and message or toolResults are required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/error.yaml'
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '404':
+      description: Session not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/error.yaml'
+    '500':
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/error.yaml'

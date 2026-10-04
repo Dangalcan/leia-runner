@@ -1,0 +1,18 @@
+type: object
+required:
+  - turnId
+  - messages
+  - state
+properties:
+  turnId:
+    type: string
+  messages:
+    type: array
+    items:
+      $ref: './event.yaml'
+  state:
+    $ref: './state.yaml'
+  replayed:
+    type: boolean
+  partial:
+    type: boolean

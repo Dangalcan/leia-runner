@@ -1,0 +1,16 @@
+type: object
+properties:
+  error:
+    type: string
+    example: Unauthorized
+  message:
+    type: string
+    example: Additional error detail
+  details:
+    type: string
+    example: Provider returned an unexpected response
+  errors:
+    type: array
+    items:
+      type: string
+description: Standard runner error response. Some endpoints return only `error`; others also include `message`, `details`, or `errors`.

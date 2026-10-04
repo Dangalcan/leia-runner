@@ -1,0 +1,7 @@
+type: object
+properties:
+  apiKeyId:
+    type: string
+    example: 64f8a62fd2f4b7c7c5b8a123
+required:
+  - apiKeyId

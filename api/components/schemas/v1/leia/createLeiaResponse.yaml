@@ -1,0 +1,14 @@
+type: object
+properties:
+  sessionId:
+    type: string
+    example: session-123
+  provider:
+    type: string
+    example: openai-responses
+  created:
+    type: boolean
+    example: true
+required:
+  - sessionId
+  - created

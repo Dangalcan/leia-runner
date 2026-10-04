@@ -1,0 +1,23 @@
+type: object
+properties:
+  messages:
+    type: array
+    items:
+      type: object
+      properties:
+        text:
+          type: string
+          example: The patient needs a follow-up visit.
+        timestamp:
+          type: string
+          example: 2026-07-08T10:00:00.000Z
+        isLeia:
+          type: boolean
+          example: false
+      required:
+        - text
+        - timestamp
+        - isLeia
+required:
+  - messages
+description: Generated conversation transcript.

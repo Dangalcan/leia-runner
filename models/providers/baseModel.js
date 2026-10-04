@@ -5,42 +5,57 @@ const ProviderState = require('../providerState');
 class BaseModel {
   constructor() {
     this.name = 'base';
-    this.apiKeyEnvVar = '';
     this._client = null;
+    this.apiKeyProvider = null;
+    this.apiKey = null;
   }
 
   // Methods implemented for all providers by default
-
+  setBaseURL(url) {
+    this.baseUrl = url.replace(/\/+$/, '');
+  }
+  setApiKey(apiKey) {
+    this.apiKey = apiKey;
+  }
   /**
-   * Gets the provider's API key from the environment variable.
+   * Obtiene el API key del proveedor desde la variable de entorno.
    * @returns {string|undefined}
    */
   getApiKey() {
-    return process.env[this.apiKeyEnvVar];
+    // Se podria llamar aqui al servicio de obtener la apikey con el Desginer intern tooken
+    return  this.apiKey;
   }
 
   /**
-   * Validates that the API key is configured.
+   * Valida que el API key esté configurado.
    * @returns {string}
    */
   ensureApiKey() {
-    if (!this.apiKeyEnvVar) {
-      throw new Error('apiKeyEnvVar is not configured for this provider');
-    }
-
     const apiKey = this.getApiKey();
 
     if (!apiKey) {
-      throw new Error(`${this.apiKeyEnvVar} is not configured`);
+      throw new Error('API key is not configured');
     }
 
     return apiKey;
   }
 
+  /**
+   * Obtiene el tipo de API key del proveedor.
+   * @returns {string}
+   * @throws {Error} Si el apiKeyProvider no está configurado en la subclase
+   */
+  getApiKeyProvider() {
+    if (!this.apiKeyProvider) {
+      throw new Error('apiKeyProvider is not configured for this provider');
+    }
+
+    return this.apiKeyProvider;
+  }
    /**
-   * Gets the provider client (lazy initialization).
-   * @returns {Object} Provider client
-   * @throws {Error} If API key is not configured
+   * Obtiene el cliente del proveedor (lazy initialization).
+   * @returns {Object} Cliente del proveedor
+   * @throws {Error} Si la API key no está configurada
    */
   getClient() {
     const apiKey = this.ensureApiKey();
@@ -51,14 +66,14 @@ class BaseModel {
   }
 
   /**
-   * Gets the provider state from sessionData using ProviderState.
-   * This method centralizes session state extraction logic.
-   * @param {Object} sessionData - Session data
-   * @returns {Object} Provider state
+   * Obtiene el estado del proveedor desde sessionData usando ProviderState.
+   * Este método centraliza la lógica de extracción de estado de sesión.
+   * @param {Object} sessionData - Datos de sesión
+   * @returns {Object} Estado del proveedor
    */
   getProviderState(sessionData = {}) {
     const state = new ProviderState(sessionData);
-    
+
     return {
       threadId: state.threadId,
       systemInstruction: state.getSystemInstruction(),
@@ -67,9 +82,9 @@ class BaseModel {
   }
 
   /**
-   * Creates a new session
-   * @param {Object} options - Options for creating the session
-   * @returns {Promise<Object>} - Created session data
+   * Crea una nueva sesión
+   * @param {Object} options - Opciones para crear la sesión
+   * @returns {Promise<Object>} - Datos de la sesión creada
    */
   async createSession(options) {
     const { instructions } = options;
@@ -79,7 +94,7 @@ class BaseModel {
     }
 
     const threadId = await this.setThreadId();
-    
+
     return {
       threadId,
       providerState: {
@@ -89,11 +104,11 @@ class BaseModel {
   }
 
   /**
-   * Evaluates a student solution
-   * @param {Object} options - Options for evaluation
-   * @param {Object} options.leiaMeta - LEIA object with problem configuration
-   * @param {string} options.result - Solution provided by the student
-   * @returns {Promise<Object>} - Evaluation result
+   * Evalúa una solución de estudiante
+   * @param {Object} options - Opciones para la evaluación
+   * @param {Object} options.leiaMeta - Objeto LEIA con la configuración del problema
+   * @param {string} options.result - Solución proporcionada por el estudiante
+   * @returns {Promise<Object>} - Resultado de la evaluación
    */
   async evaluateSolution(options) {
     const { leiaMeta, result } = options;
@@ -113,40 +128,40 @@ class BaseModel {
  // To be implemented by each provider
 
   /**
-   * Creates the provider client. Must be implemented by each subclass.
-   * Only called once, the first time the client is needed.
-   * @returns {Object} Provider client
+   * Crea el cliente del proveedor. Debe ser implementado por cada subclase.
+   * Solo se invoca una vez, la primera vez que se necesita el cliente.
+   * @returns {Object} Cliente del proveedor
    */
   createClient() {
     throw new Error('Method createClient must be implemented by subclasses');
   }
 
   /**
-   * Sends a message to the session
-   * @param {Object} options - Options for sending the message
-   * @returns {Promise<Object>} - Model response
+   * Envía un mensaje a la sesión
+   * @param {Object} options - Opciones para enviar el mensaje
+   * @returns {Promise<Object>} - Respuesta del modelo
    */
   async sendMessage(options) {
     throw new Error('Method sendMessage must be implemented by subclasses');
   }
 
   /**
-   * Defines the threadId for the session. This method must be implemented by each provider to determine how to handle conversation context.
-   * @returns {string} The threadId to use for the session, or an empty string if the provider does not use threadId. 
+   * Define el threadId para la sesión. Este método debe ser implementado por cada proveedor para determinar cómo manejar el contexto de la conversación.
+   * @returns {string} El threadId a usar para la sesión, o un string vacío si el proveedor no utiliza threadId.
    */
   async setThreadId() {
     return '';
   }
 
   /**
-   * Generates the evaluation response from the model's raw response. 
-   * This method must be implemented by each provider to define how the model's response is processed to get the structured evaluation.
-   * @returns {Object} The structured evaluation from the model's response
-   * @throws {Error} If the method is not implemented by the subclass
+   * Genera la respuesta de evaluación a partir de la respuesta cruda del modelo.
+   * Este método debe ser implementado por cada proveedor para definir cómo se procesa la respuesta del modelo para obtener la evaluación estructurada.
+   * @returns {Object} La evaluación estructurada a partir de la respuesta del modelo
+   * @throws {Error} Si el método no es implementado por la subclase
    */
   generateEvaluationResponse() {
     throw new Error('Method generateEvaluationResponse must be implemented by subclasses');
   }
 }
 
-module.exports = BaseModel; 
+module.exports = BaseModel;

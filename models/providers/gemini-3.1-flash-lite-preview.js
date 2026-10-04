@@ -3,22 +3,23 @@ const BaseModel = require('./baseModel');
 const Errors = require('../../utils/errors');
 const ProviderState = require('../providerState');
 const { GoogleGenAI } = require('@google/genai');
+const ApiKeyProvider = require('../constants');
 
 /**
- * Model provider based on Gemini Interactions API.
- * Uses server state with previous_interaction_id to maintain context.
+ * Proveedor de modelo basado en Gemini Interactions API.
+ * Usa estado de servidor con previous_interaction_id para mantener el contexto.
  */
 class Gemini31FlashLitePreviewProvider extends BaseModel {
   constructor() {
     super();
     this.name = 'gemini-3.1-flash-lite-preview';
-    this.apiKeyEnvVar = 'GEMINI_API_KEY';
     this.model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite-preview';
     this.evaluationModel = process.env.GEMINI_EVALUATION_MODEL || this.model;
+    this.apiKeyProvider = ApiKeyProvider.GEMINI;
   }
 
-  // Required for BaseModel
-  
+  // Requerido para el baseModel
+
   createClient(apiKey) {
     return new GoogleGenAI({ apiKey });
   }
@@ -57,9 +58,9 @@ class Gemini31FlashLitePreviewProvider extends BaseModel {
   }
 
   /**
-   * Performs the call to the Gemini API and returns the structured evaluation.
-   * Called by BaseModel.evaluateSolution.
-   * @param {string} prompt - Already built evaluation prompt
+   * Realiza la llamada al API de Gemini y devuelve la evaluación estructurada.
+   * Invocado por BaseModel.evaluateSolution.
+   * @param {string} prompt - Prompt de evaluación ya construido
    * @returns {Promise<Object>} - { score, evaluation }
    */
   async generateEvaluationResponse(prompt) {
@@ -79,7 +80,7 @@ class Gemini31FlashLitePreviewProvider extends BaseModel {
     return JSON.parse(this.sanitizeJsonResponse(responseText));
   }
 
-  // Helper methods 
+  // Métodos auxiliares
 
   getEvaluationResponseFormat() {
     return {
@@ -106,15 +107,17 @@ class Gemini31FlashLitePreviewProvider extends BaseModel {
   }
 
   extractTextFromInteraction(interaction) {
-    if (!interaction || !Array.isArray(interaction.outputs)) {
+    if (!interaction || !Array.isArray(interaction.steps)) {
       return '';
     }
 
-    return interaction.outputs
-      .filter(output => output?.type === 'text' && typeof output.text === 'string')
-      .map(output => output.text.trim())
-      .filter(Boolean)
-      .join('\n\n');
+    return interaction.steps
+    .filter(step => step?.type === 'model_output' && Array.isArray(step.content))
+    .flatMap(step => step.content)
+    .filter(content => content?.type === 'text' && typeof content.text === 'string')
+    .map(content => content.text.trim())
+    .filter(Boolean)
+    .join('\n\n');
   }
 
   async createInteraction({ model, input, systemInstruction, previousInteractionId, responseFormat }) {
@@ -145,4 +148,4 @@ class Gemini31FlashLitePreviewProvider extends BaseModel {
   }
 }
 
-module.exports = new Gemini31FlashLitePreviewProvider();
+module.exports = Gemini31FlashLitePreviewProvider;

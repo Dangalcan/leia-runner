@@ -34,7 +34,7 @@ class SessionService {
       try {
         normalizedSessionData.providerState = JSON.parse(normalizedSessionData.providerState);
       } catch (error) {
-        console.warn('Could not parse providerState, stored value will be used:', error.message);
+        console.warn('No se pudo parsear providerState, se usará el valor almacenado:', error.message);
       }
     }
 
@@ -64,30 +64,36 @@ class SessionService {
     return mergedSessionData;
   }
 
-  async createSession(sessionId, prompt, modelName = 'default') {
+  // Darle caña aqui
+  async createSession(sessionId, prompt, modelName, provider, apiKeyId, apiKeyRequesterId) {
     try {
       // Get the model
-      const model = modelManager.getModel(modelName);
-      
+       //"provider,keyId" //no singleton quiza es mejor modelname:apiKeyId,
+       // en vd es lo mismo pq el modelName nos da igual pa eso
+       //Ahora msimo se va a hacr con el providerModule pero de cara a usar vrios modelos distintos se podri aplantear tb el modelo
+      const sessionModelToken = `${provider}:${modelName}:${apiKeyId}`;
+      const model = await modelManager.getModel(provider, apiKeyId, apiKeyRequesterId, sessionModelToken);
       // Create a session with the selected provider
       const sessionDetails = await model.createSession({
-        instructions: prompt,
-        sessionId
+        instructions: prompt
       });
-      
+
       // Save session information in Redis
       const sessionData = {
         sessionId,
-        modelName,
+        provider: provider,//(provider)
+        modelName: modelName,
+        apiKeyId: apiKeyId,
+        apiKeyRequesterId: apiKeyRequesterId,
         threadId: sessionDetails.threadId ?? '',
         providerState: sessionDetails.providerState ?? '',
         createdAt: Date.now()
       };
-      
-      const key = `${this.keyPrefix}${sessionId}`;
-      await redisClient.hSet(key, this.serializeSessionData(sessionData));
-      await redisClient.expire(key, 86400); // 24 hours
-      
+
+      await redisClient.hSet(
+        `${this.keyPrefix}${sessionId}`,
+        this.serializeSessionData(sessionData)
+      );
       return sessionData;
     } catch (error) {
       console.error(`Error creating session ${sessionId}:`, error);
@@ -98,7 +104,7 @@ class SessionService {
   async getSession(sessionId) {
     try {
       const sessionData = await redisClient.hGetAll(`${this.keyPrefix}${sessionId}`);
-      
+
       return this.deserializeSessionData(sessionData);
     } catch (error) {
       console.error(`Error getting session ${sessionId}:`, error);
@@ -106,36 +112,51 @@ class SessionService {
     }
   }
 
-  async sendMessage(sessionId, message) {
+  async deleteSession(sessionId) {
+    await redisClient.del([
+      `${this.keyPrefix}${sessionId}`,
+      `${this.leiaMetaPrefix}${sessionId}`,
+    ]);
+  }
+
+  async sendMessage(sessionId, message, options = {}) {
     try {
       // Get the session
       const sessionData = await this.getSession(sessionId);
-      
+
       if (!sessionData) {
         return null; // Return null instead of throwing an error
       }
 
-      // Refresh TTL on activity so active sessions don't expire mid-conversation
-      await redisClient.expire(`${this.keyPrefix}${sessionId}`, 86400);
-      if (await redisClient.exists(`${this.leiaMetaPrefix}${sessionId}`)) {
-        await redisClient.expire(`${this.leiaMetaPrefix}${sessionId}`, 86400);
-      }
+      // Honor the activity-level gate set at createLeia. Trusted Runner-only
+      // sessions, such as the private MultiLEIA coordinator, can explicitly
+      // enable their internal tools without exposing them to participants.
+      const leiaMeta = await this.getLeiaMeta(sessionId);
+      const allowTools =
+        options.internalTools === true || leiaMeta?.toolFunctionsEnabled === 'true';
 
-      // Get the model for this session
-      const model = modelManager.getModel(sessionData.modelName);
-      
+      // Get the model for this session (BYOK: resolved by provider + api key).
+      const sessionModelToken = `${sessionData.provider}:${sessionData.modelName}:${sessionData.apiKeyId}`;
+      const model = await modelManager.getModel(sessionData.provider, sessionData.apiKeyId, sessionData.apiKeyRequesterId, sessionModelToken);
+
       // Send the message through the model
       const response = await model.sendMessage({
         sessionId,
         message,
-        sessionData
+        sessionData,
+        allowTools,
+        tools: allowTools ? options.tools : undefined,
+        toolResults: allowTools ? options.toolResults : undefined,
+        internalTools: options.internalTools === true,
+        parallelToolCalls: options.parallelToolCalls,
+        toolChoice: options.toolChoice,
       });
 
       if (response?.sessionData) {
         await this.updateSession(sessionId, response.sessionData);
         delete response.sessionData;
       }
-      
+
       return response;
     } catch (error) {
       console.error(`Error sending message in session ${sessionId}:`, error);
@@ -151,17 +172,18 @@ class SessionService {
    */
   async storeLeiaMeta(sessionId, metadata) {
     try {
-      // Convert metadata object to a format Redis can store
+      // Convertir el objeto metadata a un formato que Redis pueda almacenar
       const redisMetadata = {};
-      
-      // Ensure all values are strings
+
+      // Asegurarse de que todos los valores sean strings
       for (const [key, value] of Object.entries(metadata)) {
         redisMetadata[key] = value !== null && value !== undefined ? String(value) : '';
       }
-      
-      const metaKey = `${this.leiaMetaPrefix}${sessionId}`;
-      await redisClient.hSet(metaKey, redisMetadata);
-      await redisClient.expire(metaKey, 86400); // 24 hours
+
+      await redisClient.hSet(
+        `${this.leiaMetaPrefix}${sessionId}`,
+        redisMetadata
+      );
     } catch (error) {
       console.error(`Error storing LEIA metadata for session ${sessionId}:`, error);
       throw error;
@@ -176,11 +198,11 @@ class SessionService {
   async getLeiaMeta(sessionId) {
     try {
       const metadata = await redisClient.hGetAll(`${this.leiaMetaPrefix}${sessionId}`);
-      
+
       if (!metadata || Object.keys(metadata).length === 0) {
         return null;
       }
-      
+
       return metadata;
     } catch (error) {
       console.error(`Error getting LEIA metadata for session ${sessionId}:`, error);
@@ -190,4 +212,4 @@ class SessionService {
 }
 
 const sessionService = new SessionService();
-module.exports = sessionService; 
+module.exports = sessionService;

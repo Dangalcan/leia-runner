@@ -1,0 +1,28 @@
+type: object
+properties:
+  provider:
+    type: string
+    enum:
+      - openai
+      - gemini
+  voice:
+    type: string
+  widgets:
+    type: array
+    items:
+      type: object
+      properties:
+        widgetType:
+          type: string
+        slot:
+          type: string
+          enum:
+            - left
+            - right
+            - main
+        params:
+          type: object
+      required:
+        - widgetType
+        - slot
+description: Luke voice mode and widget configuration.

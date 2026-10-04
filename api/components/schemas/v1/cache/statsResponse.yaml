@@ -1,0 +1,41 @@
+type: object
+properties:
+  message:
+    type: string
+    example: Estadísticas de caché obtenidas exitosamente
+  stats:
+    type: object
+    properties:
+      total:
+        type: number
+        example: 203
+      breakdown:
+        type: object
+        properties:
+          sessions:
+            type: number
+            example: 99
+          conversations:
+            type: number
+            example: 0
+          metadata:
+            type: number
+            example: 99
+          models:
+            type: number
+            example: 4
+          validatedModels:
+            type: number
+            example: 1
+        required:
+          - sessions
+          - conversations
+          - metadata
+          - models
+          - validatedModels
+    required:
+      - total
+      - breakdown
+required:
+  - message
+  - stats

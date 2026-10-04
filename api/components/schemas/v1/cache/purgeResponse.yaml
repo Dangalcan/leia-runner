@@ -1,0 +1,39 @@
+type: object
+properties:
+  message:
+    type: string
+    example: Purga de caché completada exitosamente
+  success:
+    type: boolean
+    example: true
+  deletedKeys:
+    type: number
+    example: 12
+  totalKeysFound:
+    type: number
+    example: 15
+  timeFrame:
+    type: string
+    nullable: true
+    example: 2d
+  specificDate:
+    type: string
+    nullable: true
+    example: null
+  appliedFilters:
+    type: object
+    properties:
+      sessionId:
+        type: string
+        nullable: true
+        example: session-123
+      provider:
+        type: string
+        nullable: true
+        example: openai
+      metadata:
+        type: object
+        nullable: true
+        additionalProperties: true
+        example:
+          leiaId: 123

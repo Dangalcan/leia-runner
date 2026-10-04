@@ -1,0 +1,11 @@
+type: object
+properties:
+  score:
+    type: number
+    example: 8.5
+  evaluation:
+    type: string
+    example: The solution is mostly correct, with minor omissions.
+required:
+  - score
+  - evaluation

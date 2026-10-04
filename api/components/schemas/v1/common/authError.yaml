@@ -1,0 +1,8 @@
+type: object
+properties:
+  error:
+    type: string
+    example: Token de autenticación inválido
+required:
+  - error
+description: Bearer token authentication error response.

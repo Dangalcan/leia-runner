@@ -1,0 +1,133 @@
+delete:
+  tags:
+    - Cache v1
+  operationId: purgeCache
+  summary: Purge runner cache entries
+  parameters:
+    - name: f
+      in: query
+      required: false
+      description: Relative time frame such as 1h, 2d, 1w, 3m, or all.
+      schema:
+        type: string
+        default: all
+    - name: date
+      in: query
+      required: false
+      description: Specific date to purge before.
+      schema:
+        type: string
+    - name: sessionId
+      in: query
+      required: false
+      schema:
+        type: string
+    - name: provider
+      in: query
+      required: false
+      schema:
+        type: string
+    - name: metadata
+      in: query
+      required: false
+      description: JSON object with metadata filters.
+      schema:
+        type: string
+        example: '{"leiaId":"123"}'
+  responses:
+    '200':
+      description: Cache purged successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/cache/purgeResponse.yaml'
+    '400':
+      description: Invalid purge parameters.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              help:
+                type: object
+                additionalProperties:
+                  type: string
+              validFormats:
+                type: object
+                additionalProperties:
+                  type: string
+              examples:
+                type: array
+                items:
+                  type: string
+              example:
+                type: string
+            required:
+              - error
+          examples:
+            conflictingTimeFilters:
+              summary: Cannot use f and date together
+              value:
+                error: No puede especificar f y date al mismo tiempo. Use uno u otro.
+                help:
+                  f: 'Para purgar basado en tiempo relativo (ej: 1h, 2d, 1w)'
+                  date: 'Para purgar antes de una fecha específica (ej: 2024-01-15 o timestamp)'
+            invalidTimeFrame:
+              summary: Invalid time frame
+              value:
+                error: Formato de marco temporal inválido
+                validFormats:
+                  hours: 'Xh (ej: 1h, 24h)'
+                  days: 'Xd (ej: 1d, 7d)'
+                  weeks: 'Xw (ej: 1w, 2w)'
+                  months: 'Xm (ej: 1m, 6m)'
+                  all: all (purgar todo)
+            invalidDate:
+              summary: Invalid specific date
+              value:
+                error: Formato de fecha inválido
+                validFormats:
+                  iso: 'YYYY-MM-DD (ej: 2024-01-15)'
+                  isoWithTime: 'YYYY-MM-DDTHH:mm:ss (ej: 2024-01-15T10:30:00)'
+                  timestamp: 'Timestamp en segundos o milisegundos (ej: 1705312800)'
+                examples:
+                  - '2024-01-15'
+                  - '2024-01-15T10:30:00'
+                  - '1705312800'
+            invalidMetadata:
+              summary: Invalid metadata JSON
+              value:
+                error: Los metadatos deben estar en formato JSON válido
+                example: '{"leiaId": "123", "personaId": "456"}'
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '500':
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              details:
+                type: string
+            required:
+              - error
+          examples:
+            purgeFailed:
+              summary: Cache purge failed
+              value:
+                error: Error interno durante la purga de caché
+                details: Redis error
+            serverError:
+              summary: Unexpected server error
+              value:
+                error: Error interno del servidor durante la purga de caché
+                details: Unexpected error message

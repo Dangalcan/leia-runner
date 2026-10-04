@@ -1,0 +1,35 @@
+services:
+  redis-runner:
+    restart: unless-stopped
+    image: redis:7-alpine
+    container_name: redis-runner
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-runner:/data
+
+  leia-runner:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: leia-runner
+    environment:
+      - PORT=80
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_IMAGE_MODEL=${GEMINI_IMAGE_MODEL}
+      - REDIS_URL=redis://redis-runner:6379
+      - DEFAULT_MODEL=${DEFAULT_MODEL}
+      - RUNNER_KEY=${RUNNER_KEY}
+      - INTERN_TOKEN=${INTERN_TOKEN}
+      - VITE_AUTH_SERVICE_BACKEND=${VITE_AUTH_SERVICE_BACKEND}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    depends_on:
+      - redis-runner
+    ports:
+      - '${PORT}:80'
+
+volumes:
+  redis-runner:

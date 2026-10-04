@@ -1,0 +1,50 @@
+type: object
+properties:
+  message:
+    type: string
+    example: Create a LEIA activity from the attached PDF.
+  tools:
+    type: array
+    items:
+      type: object
+      properties:
+        name:
+          type: string
+          example: get_current_problem
+        description:
+          type: string
+          example: Returns the current problem spec.
+        parameters:
+          type: object
+          description: JSON Schema describing the tool input parameters.
+          additionalProperties: true
+          example:
+            type: object
+            properties: {}
+      required:
+        - name
+        - parameters
+  toolResults:
+    type: array
+    items:
+      type: object
+      properties:
+        callId:
+          type: string
+          example: call_abc123
+        output:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: array
+              items: {}
+            - type: object
+              additionalProperties: true
+      required:
+        - callId
+        - output
+  fileIds:
+    type: array
+    items:
+      type: string

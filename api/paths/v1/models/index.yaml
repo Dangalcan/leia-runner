@@ -1,0 +1,30 @@
+get:
+  tags:
+    - Models v1
+  operationId: listModels
+  summary: List available models
+  responses:
+    '200':
+      description: Available models grouped by provider.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/model/modelsResponse.yaml'
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '500':
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Internal error listing models
+            required:
+              - error

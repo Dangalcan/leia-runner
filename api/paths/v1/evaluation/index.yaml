@@ -1,0 +1,68 @@
+post:
+  tags:
+    - Evaluation v1
+  operationId: evaluateSolution
+  summary: Evaluate a student solution
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/evaluation/evaluateRequest.yaml'
+  responses:
+    '200':
+      description: Evaluation result.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/evaluation/evaluateResponse.yaml'
+    '400':
+      description: sessionId or result is missing.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: SessionId and result are required
+            required:
+              - error
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '404':
+      description: Session or LEIA metadata not found.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+            required:
+              - error
+          examples:
+            sessionNotFound:
+              summary: Session not found
+              value:
+                error: 'Session with ID: session-123 not found'
+            leiaMetadataNotFound:
+              summary: LEIA metadata not found
+              value:
+                error: 'LEIA metadata for session ID: session-123 not found'
+    '500':
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Internal error evaluating solution
+            required:
+              - error

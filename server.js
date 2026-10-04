@@ -1,50 +1,51 @@
 const express = require('express');
 const swaggerUi = require('swagger-ui-express');
-const YAML = require('yamljs');
 const cors = require('cors');
+const path = require('path');
 const { redisClient, initRedis } = require('./config/redis');
 const modelSyncService = require('./services/modelSyncService');
 const modelManager = require('./models/modelManager');
-const oasTelemetry = require('@oas-tools/oas-telemetry');
-const path = require('path');
-const { readFileSync } = require('fs');
-
 const app = express();
 const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
-app.use(oasTelemetry({ general: { spec: readFileSync(path.join(__dirname, 'api', 'openapi.yml'), { encoding: 'utf8', flag: 'r' }) } }));
 app.use(express.json());
 
-// Load OpenAPI specification
-const swaggerDocument = YAML.load('./api/openapi.yml');
+// Configurar Swagger UI
+app.use('/openapi', express.static(path.join(__dirname, 'api')));
+app.use(
+  '/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(null, {
+    swaggerUrl: '/openapi/openapi.yml',
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  })
+);
 
-// Configure Swagger UI
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
-// Routes
+// Rutas
 app.use('/api/v1', require('./routes/leiasRoutes'));
+app.use('/api/v1', require('./routes/apiKeyRoutes'));
 
-// Initialize Redis and synchronize models
+// Inicializar Redis y sincronizar modelos
 async function initializeServer() {
   try {
-    // Connect to Redis
+    // Conectar a Redis
     await initRedis();
     console.log('Connected to Redis');
 
-    // Initialize models
-    await modelManager.initializeModels();
-    console.log('Models initialized');
+    // Inicializar modelos
+    await modelManager.initializeProviderModules();
+    console.log('Provider modulesinitialized');
 
-    // Synchronize models in Redis
+    // Sincronizar modelos en Redis
     await modelSyncService.syncModels();
     console.log('Models synchronized in Redis');
 
-    // Start the server
+    // Iniciar el servidor
     app.listen(port, () => {
-      console.log(`Swagger UI available at http://localhost:${port}/docs`);
-      console.log(`Telemetry available at http://localhost:${port}/telemetry`);
       console.log(`Server running on port ${port}`);
     });
   } catch (error) {

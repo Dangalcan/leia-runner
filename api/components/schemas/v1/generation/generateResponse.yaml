@@ -1,0 +1,71 @@
+type: object
+oneOf:
+  - properties:
+      apiVersion:
+        type: string
+        example: v1
+      metadata:
+        type: object
+        properties:
+          name:
+            type: string
+            example: fractions-for-secondary-school
+          version:
+            type: string
+            example: 1.0.0
+        required:
+          - name
+          - version
+      spec:
+        type: object
+        properties:
+          description:
+            type: string
+          personaBackground:
+            type: string
+          details:
+            type: string
+          solution:
+            type: string
+          solutionFormat:
+            type: string
+            example: text
+          process:
+            type: string
+            example: other
+          extends:
+            type: object
+          overrides:
+            type: object
+          constrainedTo:
+            type: object
+        required:
+          - description
+          - personaBackground
+          - details
+          - solution
+    required:
+      - apiVersion
+      - metadata
+      - spec
+  - properties:
+      spec:
+        type: object
+        properties:
+          description:
+            type: string
+          role:
+            type: string
+          tooltip:
+            type: string
+          process:
+            type: array
+            items:
+              type: string
+        required:
+          - description
+          - role
+          - tooltip
+    required:
+      - spec
+description: Generated resource payload.

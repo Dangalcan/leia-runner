@@ -5,6 +5,8 @@ class CacheService {
     this.sessionPrefix = 'session:';
     this.conversationPrefix = 'session:conversation:';
     this.leiaMetaPrefix = 'leia:meta:';
+    this.multiLeiaPrefix = 'multi-leia:';
+    this.multiLeiaLockPrefix = 'multi-leia:lock:';
     this.modelsPrefix = 'models:';
     this.validatedModelsKey = 'validated_models';
   }
@@ -142,10 +144,16 @@ class CacheService {
    * @returns {Array} - Array of filtered keys
    */
   filterKeysBySession(keys, sessionId) {
-    return keys.filter(key => 
+    const actorSessionPrefix = `${this.sessionPrefix}${sessionId}:actor:`;
+    const actorConversationPrefix = `${this.conversationPrefix}${sessionId}:actor:`;
+    return keys.filter(key =>
       key === `${this.sessionPrefix}${sessionId}` ||
       key === `${this.leiaMetaPrefix}${sessionId}` ||
-      key === `${this.conversationPrefix}${sessionId}`
+      key === `${this.conversationPrefix}${sessionId}` ||
+      key === `${this.multiLeiaPrefix}${sessionId}` ||
+      key === `${this.multiLeiaLockPrefix}${sessionId}` ||
+      key.startsWith(actorSessionPrefix) ||
+      key.startsWith(actorConversationPrefix)
     );
   }
 
@@ -260,6 +268,7 @@ class CacheService {
         `${this.sessionPrefix}*`,
         `${this.conversationPrefix}*`,
         `${this.leiaMetaPrefix}*`,
+        `${this.multiLeiaPrefix}*`,
         `${this.modelsPrefix}*`,
         this.validatedModelsKey
       ];
@@ -348,6 +357,7 @@ class CacheService {
         { name: 'sessions', pattern: `${this.sessionPrefix}*` },
         { name: 'conversations', pattern: `${this.conversationPrefix}*` },
         { name: 'metadata', pattern: `${this.leiaMetaPrefix}*` },
+        { name: 'multiLeia', pattern: `${this.multiLeiaPrefix}*` },
         { name: 'models', pattern: `${this.modelsPrefix}*` }
       ];
 
@@ -386,4 +396,4 @@ class CacheService {
   }
 }
 
-module.exports = new CacheService(); 
+module.exports = new CacheService();

@@ -1,0 +1,70 @@
+type: object
+oneOf:
+  - type: object
+    properties:
+      message:
+        type: string
+        example: Sure, let's begin.
+      sessionData:
+        type: object
+        properties:
+          threadId:
+            type: string
+            example: conv_abc123
+          providerState:
+            type: object
+            properties:
+              systemInstruction:
+                type: string
+                example: You are a helpful tutor.
+              conversationId:
+                type: string
+                example: conv_abc123
+              interactionId:
+                type: string
+                example: int_abc123
+              lastResponseId:
+                type: string
+                example: resp_abc123
+            required:
+              - systemInstruction
+    required:
+      - message
+      - sessionData
+  - type: object
+    properties:
+      toolCalls:
+        type: array
+        items:
+          type: object
+          properties:
+            callId:
+              type: string
+              example: call_abc123
+            name:
+              type: string
+              example: get_current_problem
+            arguments:
+              type: string
+              example: '{}'
+          required:
+            - callId
+            - name
+            - arguments
+      sessionData:
+        type: object
+        properties:
+          threadId:
+            type: string
+            example: conv_abc123
+          providerState:
+            type: object
+            properties:
+              systemInstruction:
+                type: string
+                example: You are a helpful tutor.
+            required:
+              - systemInstruction
+    required:
+      - toolCalls
+      - sessionData

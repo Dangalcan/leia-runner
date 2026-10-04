@@ -1,0 +1,69 @@
+post:
+  tags:
+    - Problem Chat v1
+  operationId: sendProblemChatMessage
+  summary: Send a message to a problem-chat session
+  parameters:
+    - name: chatId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: 550e8400-e29b-41d4-a716-446655440000
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/problemChat/messageRequest.yaml'
+  responses:
+    '200':
+      description: Message processed successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/problemChat/messageResponse.yaml'
+    '400':
+      description: A message or toolResults are required.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: A message or toolResults are required
+            required:
+              - error
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '404':
+      description: Problem-chat session not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/problemChat/sessionNotFoundError.yaml'
+          example:
+            error: Failed to process message
+            message: Problem-chat session not found
+    '500':
+      description: Failed to process message.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Failed to process message
+              message:
+                type: string
+                example: Unexpected error message
+            required:
+              - error
+              - message

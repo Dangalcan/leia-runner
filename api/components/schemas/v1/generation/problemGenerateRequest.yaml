@@ -1,0 +1,63 @@
+type: object
+properties:
+  subject:
+    type: string
+    example: Fractions for secondary school
+  additionalDetails:
+    type: string
+    example: Make it practical and contextualized.
+  exampleProblem:
+    type: object
+    properties:
+      apiVersion:
+        type: string
+        example: v1
+      metadata:
+        type: object
+        properties:
+          name:
+            type: string
+            example: fractions-baseline
+          version:
+            type: string
+            example: 1.0.0
+        required:
+          - name
+          - version
+      spec:
+        type: object
+        properties:
+          description:
+            type: string
+            example: A school wants to teach fractions using a bakery scenario.
+          personaBackground:
+            type: string
+            example: The client is a teacher looking for an engaging activity.
+          details:
+            type: string
+            example: Students must compare and simplify fractions.
+          solution:
+            type: string
+            example: 1/2 + 1/4 = 3/4
+          solutionFormat:
+            type: string
+            example: text
+          process:
+            type: string
+            example: other
+          extends:
+            type: object
+          overrides:
+            type: object
+          constrainedTo:
+            type: object
+        required:
+          - description
+          - personaBackground
+          - details
+          - solution
+    required:
+      - spec
+required:
+  - subject
+  - exampleProblem

@@ -1,0 +1,36 @@
+post:
+  tags:
+    - API Keys v1
+  operationId: revokeApiKey
+  summary: Revoke a cached API key in the runner
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/apiKey/revokeRequest.yaml'
+  responses:
+    '200':
+      description: API key revoked successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/apiKey/revokeResponse.yaml'
+          example:
+            success: true
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '500':
+      description: Failed to revoke API key.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/apiKey/revokeResponse.yaml'
+          example:
+            success: false
+            errors:
+              - Unexpected error message

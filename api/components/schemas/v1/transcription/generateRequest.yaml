@@ -1,0 +1,58 @@
+type: object
+properties:
+  leia:
+    type: object
+    properties:
+      apiVersion:
+        type: string
+        example: v1
+      metadata:
+        type: object
+        properties:
+          name:
+            type: string
+            example: sample-activity
+          version:
+            type: string
+            example: 1.0.0
+        required:
+          - name
+          - version
+      spec:
+        type: object
+        properties:
+          behaviour:
+            type: object
+            properties:
+              spec:
+                type: object
+                properties:
+                  description:
+                    type: string
+                    example: You are an encouraging tutor.
+                required:
+                  - description
+          problem:
+            type: object
+            properties:
+              spec:
+                type: object
+                properties:
+                  description:
+                    type: string
+                  solution:
+                    type: string
+                  solutionFormat:
+                    type: string
+                    example: text
+                  evaluationPrompt:
+                    type: string
+                required:
+                  - description
+                  - solution
+        required:
+          - behaviour
+    required:
+      - spec
+required:
+  - leia

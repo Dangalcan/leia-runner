@@ -1,0 +1,52 @@
+post:
+  tags:
+    - Supervisor v1
+  operationId: observeSupervisor
+  summary: Observe an activity transcript window
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/supervisor/observeRequest.yaml'
+  responses:
+    '200':
+      description: Supervisor observation result.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/supervisor/observeResponse.yaml'
+    '400':
+      description: Transcript is missing or empty.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: A non-empty transcript is required
+            required:
+              - error
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '500':
+      description: Failed to run supervisor observation.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Failed to run supervisor observation
+              message:
+                type: string
+                example: Unexpected error message
+            required:
+              - error
+              - message

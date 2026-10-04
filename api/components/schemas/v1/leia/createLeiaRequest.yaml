@@ -1,0 +1,98 @@
+type: object
+properties:
+  sessionId:
+    type: string
+    example: session-123
+  leia:
+    type: object
+    properties:
+      apiVersion:
+        type: string
+        example: v1
+      metadata:
+        type: object
+        properties:
+          name:
+            type: string
+            example: sample-activity
+          version:
+            type: string
+            example: 1.0.0
+        required:
+          - name
+          - version
+      spec:
+        type: object
+        properties:
+          problem:
+            type: object
+            properties:
+              spec:
+                type: object
+                properties:
+                  description:
+                    type: string
+                  personaBackground:
+                    type: string
+                  details:
+                    type: string
+                  solution:
+                    type: string
+                  solutionFormat:
+                    type: string
+                    example: text
+                  evaluationPrompt:
+                    type: string
+                  process:
+                    type: string
+                  extends:
+                    type: object
+                    additionalProperties: true
+                  overrides:
+                    type: object
+                    additionalProperties: true
+                  constrainedTo:
+                    type: object
+                    additionalProperties: true
+                required:
+                  - description
+                  - personaBackground
+                  - details
+                  - solution
+            required:
+              - spec
+          behaviour:
+            type: object
+            properties:
+              spec:
+                type: object
+                properties:
+                  description:
+                    type: string
+                  role:
+                    type: string
+                  tooltip:
+                    type: string
+                  process:
+                    type: array
+                    items:
+                      type: string
+                required:
+                  - description
+                  - role
+                  - tooltip
+            required:
+              - spec
+        required:
+          - problem
+          - behaviour
+    required:
+      - apiVersion
+      - metadata
+      - spec
+    description: LEIA configuration object.
+  runnerConfiguration:
+    $ref: '../common/runnerConfiguration.yaml'
+required:
+  - sessionId
+  - leia

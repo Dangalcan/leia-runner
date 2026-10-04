@@ -1,0 +1,11 @@
+type: object
+properties:
+  error:
+    type: string
+  message:
+    type: string
+    example: Problem-chat session not found
+required:
+  - error
+  - message
+description: Problem-chat session not found error response.

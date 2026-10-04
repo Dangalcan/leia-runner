@@ -9,22 +9,27 @@ module.exports.evaluateSolution = async function evaluateSolution(req, res) {
       return res.status(400).send({ error: 'SessionId and result are required' });
     }
 
-    // Get the session
+    // Obtener la sesión
     const sessionData = await sessionService.getSession(sessionId);
     if (!sessionData) {
       return res.status(404).send({ error: `Session with ID: ${sessionId} not found` });
     }
 
-    // Obtain LEIA metadata
+    // Obtener los metadatos de LEIA
     const leiaMeta = await sessionService.getLeiaMeta(sessionId);
     if (!leiaMeta) {
       return res.status(404).send({ error: `LEIA metadata for session ID: ${sessionId} not found` });
     }
 
-    // Get the model
-    const model = modelManager.getModel(sessionData.modelName);
+    const token = `${sessionData.provider}:${sessionData.modelName}:${sessionData.apiKeyId}`;
+    const model = await modelManager.getModel(
+      sessionData.provider,
+      sessionData.apiKeyId,
+      sessionData.apiKeyRequesterId,
+      token
+    );
 
-    // Evaluate the solution
+    // Evaluar la solución
     const evaluationResult = await model.evaluateSolution({
       leiaMeta,
       result
@@ -35,4 +40,4 @@ module.exports.evaluateSolution = async function evaluateSolution(req, res) {
     console.error(`Error evaluating solution for session ${req.body.sessionId}:`, error);
     res.status(500).send({ error: 'Internal error evaluating solution' });
   }
-}; 
+};

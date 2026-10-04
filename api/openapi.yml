@@ -1,14 +1,12 @@
-openapi: "3.1.0"
-
+openapi: 3.0.3
 info:
-  title: LEIA CUSTOMER API
-  description: API for interacting with LEIA instances.
-  version: "1.0.0"
-
+  title: LEIA Runner API
+  description: API for running LEIA sessions, generation helpers, cache operations, and internal runner utilities.
+  version: '1.0.0'
 servers:
-  - url: /
+  - url: /api
     description: Local server
-  - url: https://customer-leia-c532b43c578c.herokuapp.com
+  - url: https://customer-leia-c532b43c578c.herokuapp.com/api
     description: Production server
 
 components:
@@ -18,487 +16,65 @@ components:
       scheme: bearer
       bearerFormat: JWT
 
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Leias v1
+    description: LEIA runtime session endpoints
+  - name: MultiLEIA v1
+    description: Deterministic text-only multi-agent runtime endpoints
+  - name: Models v1
+    description: Available model endpoints
+  - name: Evaluation v1
+    description: Student solution evaluation endpoints
+  - name: Cache v1
+    description: Runner cache management endpoints
+  - name: Transcriptions v1
+    description: Transcription generation endpoints
+  - name: Generation v1
+    description: Problem and behaviour generation endpoints
+  - name: Problem Chat v1
+    description: Design-time problem chat assistant endpoints
+  - name: Supervisor v1
+    description: Background activity supervision endpoints
+  - name: API Keys v1
+    description: Internal API key cache endpoints
+
 paths:
-  /api/v1/leias:
-    post:
-      operationId: createLeia
-      summary: Creates a new LEIA instance
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                sessionId:
-                  type: string
-                  description: Unique session ID
-                leia:
-                  type: object
-                  description: LEIA configuration object
-                runnerConfig:
-                  type: object
-                  properties:
-                    provider:
-                      type: string
-                      description: Name of the model provider to use
-      responses:
-        "201":
-          description: LEIA created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  sessionId:
-                    type: string
-                  modelName:
-                    type: string
-                  created:
-                    type: boolean
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        "409":
-          description: Session already exists
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                  sessionId:
-                    type: string
-                  modelName:
-                    type: string
-                  created:
-                    type: boolean
-                    default: false
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-      security:
-        - bearerAuth: []
-  
-  /api/v1/leias/{sessionId}/messages:
-    post:
-      operationId: sendLeiaMessage
-      summary: Sends a message to a LEIA instance
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          description: Unique session ID
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                  description: Message to send to LEIA
-      responses:
-        "200":
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        "404":
-          description: Session not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-      security:
-        - bearerAuth: []
-        
-  /api/v1/models:
-    get:
-      operationId: listModels
-      summary: Lists available models
-      responses:
-        "200":
-          description: List of available models
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  models:
-                    type: array
-                    items:
-                      type: string
-                  default:
-                    type: string
-                    description: Configured default model
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-      security:
-        - bearerAuth: []
-
-  /api/v1/evaluation:
-    post:
-      operationId: evaluateSolution
-      summary: Evaluates a student's solution against the expected solution
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                sessionId:
-                  type: string
-                  description: Session ID associated with the LEIA instance
-                result:
-                  type: string
-                  description: Solution provided by the student
-      responses:
-        "200":
-          description: Evaluation result
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  score:
-                    type: number
-                    description: Score from 0 to 100
-                  evaluation:
-                    type: string
-                    description: Detailed evaluation in markdown format
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        "404":
-          description: Session or LEIA metadata not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-      security:
-        - bearerAuth: []
-
-  /api/v1/cache/purge:
-    delete:
-      operationId: purgeCache
-      summary: Purges cache based on specified criteria
-      description: |
-        Purges cache entries based on time frame and optional filters.
-        
-        **Time Frames:**
-        - `1h`, `2h`, etc. - Hours
-        - `1d`, `2d`, etc. - Days
-        - `1w`, `2w`, etc. - Weeks  
-        - `1m`, `2m`, etc. - Months (aprox 30 days)
-        - `all` - All cache entries (default)
-        
-        **Specific Dates:**
-        - `YYYY-MM-DD` - ISO date format (e.g., 2024-01-15)
-        - `YYYY-MM-DDTHH:mm:ss` - ISO datetime format (e.g., 2024-01-15T10:30:00)
-        - `timestamp` - Unix timestamp in seconds or milliseconds
-        
-        **Filters:**
-        - `sessionId` - Specific session ID
-        - `provider` - Specific model name
-        - `metadata` - JSON object with metadata filters
-        
-        **Note:** Cannot use both `f` and `date` simultaneously.
-      parameters:
-        - name: f
-          in: query
-          required: false
-          description: Time frame for cache purge (1h, 2d, 1w, 3m, all)
-          schema:
-            type: string
-            default: "all"
-            example: "2d"
-        - name: date
-          in: query
-          required: false
-          description: Specific date to purge before (YYYY-MM-DD, YYYY-MM-DDTHH:mm:ss, or timestamp)
-          schema:
-            type: string
-            example: "2024-01-15"
-        - name: sessionId
-          in: query
-          required: false
-          description: Specific session ID to purge
-          schema:
-            type: string
-            example: "session-123"
-        - name: provider
-          in: query
-          required: false
-          description: Specific model name to purge
-          schema:
-            type: string
-            example: "openai"
-        - name: metadata
-          in: query
-          required: false
-          description: JSON object with metadata filters
-          schema:
-            type: string
-            example: '{"leiaId": "123", "personaId": "456"}'
-      responses:
-        "200":
-          description: Cache purged successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  success:
-                    type: boolean
-                  deletedKeys:
-                    type: number
-                    description: Number of keys deleted
-                  totalKeysFound:
-                    type: number
-                    description: Total keys found before filtering
-                  timeFrame:
-                    type: string
-                    nullable: true
-                    description: Time frame used (null if date was used)
-                  specificDate:
-                    type: string
-                    nullable: true
-                    description: Specific date used (null if f was used)
-                  appliedFilters:
-                    type: object
-                    properties:
-                      sessionId:
-                        type: string
-                        nullable: true
-                      provider:
-                        type: string
-                        nullable: true
-                      metadata:
-                        type: object
-                        nullable: true
-        "400":
-          description: Bad request - Invalid parameters
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                  validFormats:
-                    type: object
-                    properties:
-                      hours:
-                        type: string
-                      days:
-                        type: string
-                      weeks:
-                        type: string
-                      months:
-                        type: string
-                      all:
-                        type: string
-                      iso:
-                        type: string
-                      isoWithTime:
-                        type: string
-                      timestamp:
-                        type: string
-                  examples:
-                    type: array
-                    items:
-                      type: string
-                  help:
-                    type: object
-                    properties:
-                      f:
-                        type: string
-                      date:
-                        type: string
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                  details:
-                    type: string
-      security:
-        - bearerAuth: []
-
-  /api/v1/cache/stats:
-    get:
-      operationId: getCacheStats
-      summary: Gets cache statistics
-      description: Returns current cache statistics including total keys and breakdown by type
-      responses:
-        "200":
-          description: Cache statistics retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  stats:
-                    type: object
-                    properties:
-                      total:
-                        type: number
-                        description: Total number of cache keys
-                      breakdown:
-                        type: object
-                        properties:
-                          sessions:
-                            type: number
-                            description: Number of session keys
-                          metadata:
-                            type: number
-                            description: Number of metadata keys
-                          models:
-                            type: number
-                            description: Number of model keys
-                          validatedModels:
-                            type: number
-                            description: Number of validated model keys
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-        "500":
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                  details:
-                    type: string
-      security:
-        - bearerAuth: []
+  /v1/leias:
+    $ref: './paths/v1/leias/index.yaml'
+  /v1/leias/{sessionId}/messages:
+    $ref: './paths/v1/leias/_sessionId-messages.yaml'
+  /v1/multi-leias:
+    $ref: './paths/v1/multi-leias/index.yaml'
+  /v1/multi-leias/{sessionId}:
+    $ref: './paths/v1/multi-leias/_sessionId.yaml'
+  /v1/multi-leias/{sessionId}/messages:
+    $ref: './paths/v1/multi-leias/_sessionId-messages.yaml'
+  /v1/multi-leias/{sessionId}/messages/stream:
+    $ref: './paths/v1/multi-leias/_sessionId-messages-stream.yaml'
+  /v1/models:
+    $ref: './paths/v1/models/index.yaml'
+  /v1/evaluation:
+    $ref: './paths/v1/evaluation/index.yaml'
+  /v1/cache/purge:
+    $ref: './paths/v1/cache/purge.yaml'
+  /v1/cache/stats:
+    $ref: './paths/v1/cache/stats.yaml'
+  /v1/transcriptions/generate:
+    $ref: './paths/v1/transcriptions/generate.yaml'
+  /v1/problems/generate:
+    $ref: './paths/v1/problems/generate.yaml'
+  /v1/behaviours/generate:
+    $ref: './paths/v1/behaviours/generate.yaml'
+  /v1/problems/chat/session:
+    $ref: './paths/v1/problem-chat/session.yaml'
+  /v1/problems/chat/{chatId}/files:
+    $ref: './paths/v1/problem-chat/_chatId-files.yaml'
+  /v1/problems/chat/{chatId}/messages:
+    $ref: './paths/v1/problem-chat/_chatId-messages.yaml'
+  /v1/supervisor:
+    $ref: './paths/v1/supervisor/index.yaml'
+  /v1/revoke:
+    $ref: './paths/v1/apikeys/revoke.yaml'

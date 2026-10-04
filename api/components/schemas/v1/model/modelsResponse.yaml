@@ -1,0 +1,37 @@
+type: object
+properties:
+  models:
+    type: array
+    items:
+      type: string
+    example:
+      - gpt-4o-mini
+      - gpt-4o
+  default:
+    type: string
+    example: gpt-4o-mini
+  apiKeyProviders:
+    type: object
+    additionalProperties:
+      type: array
+      items:
+        type: string
+    example:
+      openai:
+        - gpt-4o-mini
+        - gpt-4o
+      gemini:
+        - gemini-1.5-flash
+  providerProviderModuleMap:
+    type: object
+    additionalProperties:
+      type: string
+    example:
+      openai-responses: openai-responses
+      gemini-3.1-flash-lite-preview: gemini-3.1-flash-lite-preview
+required:
+  - models
+  - default
+  - apiKeyProviders
+  - providerProviderModuleMap
+description: Available models grouped by provider.

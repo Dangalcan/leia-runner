@@ -1,13 +1,12 @@
 var http = require('http');
 var express = require("express");
 var swaggerUi = require('swagger-ui-express');
-var YAML = require('yamljs');
 var path = require('path');
 require('dotenv').config();
 const { initRedis } = require('./config/redis');
 const modelManager = require('./models/modelManager');
 const leiasRoutes = require('./routes/leiasRoutes');
-const { bearerAuth } = require('./utils/auth');
+const apiKeyRoutes = require('./routes/apiKeyRoutes');
 
 const deploy = async () => {
     const serverPort = process.env.PORT || 5000;
@@ -19,17 +18,17 @@ const deploy = async () => {
         
         await modelManager.initialize();
 
-        const openApiPath = path.join(__dirname, 'api', 'openapi.yml');
-        const swaggerDocument = YAML.load(openApiPath);
-        
-        app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+        app.use('/openapi', express.static(path.join(__dirname, 'api')));
+        app.use('/docs', swaggerUi.serve, swaggerUi.setup(null, {
             customCss: '.swagger-ui .topbar { display: none }',
+            swaggerUrl: '/openapi/openapi.yml',
             swaggerOptions: {
                 persistAuthorization: true
             }
         }));
 
         app.use('/api/v1', leiasRoutes);
+        app.use('/api/v1', apiKeyRoutes);
 
         http.createServer(app).listen(serverPort, () => {
             console.log("\nApp running at http://localhost:" + serverPort);

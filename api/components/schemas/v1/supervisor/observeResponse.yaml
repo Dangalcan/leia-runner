@@ -1,0 +1,27 @@
+type: object
+properties:
+  flags:
+    type: array
+    items:
+      type: object
+      properties:
+        category:
+          type: string
+          example: academic-integrity
+        severity:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+        note:
+          type: string
+          example: The student asked the AI to solve the task directly.
+        quote:
+          type: string
+          nullable: true
+          example: Can you solve this for me?
+  nudge:
+    type: string
+    nullable: true
+    example: Try explaining your current approach first, then ask for feedback.

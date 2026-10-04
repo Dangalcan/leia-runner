@@ -7,7 +7,7 @@ const ProblemSpecSchema = z.object({
     description: z.string().describe("A clear description of what the problem is about"),
     personaBackground: z.string().describe("Background context for the persona in this problem scenario"),
     details: z.string().describe("Extended details about the problem, including specific requirements"),
-    solution: z.string().describe("The expected solution in the specified format"),
+    solution: z.string().describe("The expected solution in the specified format")
 });
 
 const ProblemSpecResponseFormat = {
@@ -28,7 +28,7 @@ const ProblemSpecResponseFormat = {
         solution: {
             type: "string",
             description: "The expected solution in the specified format",
-        },
+        }
     },
     required: ["description", "personaBackground", "details", "solution"],
 };
@@ -83,7 +83,7 @@ ${additionalDetails ? `- Additional instructions: ${additionalDetails}` : ""}
 2. The DESCRIPTION should explain the context of the organization/scenario that needs a solution
 3. The PERSONA BACKGROUND should provide context about who the client/user is (role, experience, motivations) - use persona template tags like {{persona.fullName}} where appropriate
 4. The DETAILS should include specific requirements, constraints and expected features
-5. The SOLUTION must be complete and in ${exampleSpec.solutionFormat || "text"} format (if "mermaid", generate a valid UML class diagram)
+5. The SOLUTION must be complete and in ${exampleSpec.solutionFormat || "text"} format (if "mermaid", generate a valid UML class diagram) , without using special characters like 'ñ'
 6. Maintain the same level of complexity and detail as the example
 7. Content should be realistic and educational for students
 8. Use template tags ({{persona.*}}, {{behaviour.*}}) to make the content dynamic where it makes sense`;
@@ -95,7 +95,7 @@ Your task is to generate problems that simulate real-world scenarios. The proble
 - Realistic and based on real business/organizational domains
 - Complex enough for students to practice and learn
 - Clear about what the scenario or challenge is
-- With solutions that represent the expected outcome (in mermaid format if specified)
+- With solutions that represent the expected outcome(in mermaid format if specified)
 
 Always respond in the same language as the example problem provided.`,
             userPrompt: prompt,
@@ -119,10 +119,10 @@ Always respond in the same language as the example problem provided.`,
             spec: {
                 ...generatedSpec,
                 solutionFormat: exampleSpec.solutionFormat || "text",
-                process: exampleSpec.process || [],
-                extends: exampleSpec.extends || {},
-                overrides: exampleSpec.overrides || {},
-                constrainedTo: exampleSpec.constrainedTo || {},
+                process: exampleSpec.process || "other",
+                extends:{},
+                overrides: {},
+                constrainedTo: {},
             },
         };
     }

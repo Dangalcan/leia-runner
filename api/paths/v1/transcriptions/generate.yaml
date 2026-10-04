@@ -1,0 +1,69 @@
+post:
+  tags:
+    - Transcriptions v1
+  operationId: generateTranscription
+  summary: Generate a transcription for a LEIA
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/transcription/generateRequest.yaml'
+  responses:
+    '200':
+      description: Transcription generated successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/transcription/generateResponse.yaml'
+    '400':
+      description: Invalid LEIA payload.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+            required:
+              - error
+          examples:
+            leiaRequired:
+              summary: LEIA object is missing
+              value:
+                error: LEIA object is required
+            behaviourDescriptionRequired:
+              summary: Behaviour description is missing
+              value:
+                error: LEIA must have a behaviour description for transcription generation
+            validationError:
+              summary: Service validation error
+              value:
+                error: LEIA object with behaviour description is required for transcription
+    '401':
+      description: AI provider configuration error.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: AI provider configuration error
+            required:
+              - error
+    '500':
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Internal error generating transcription
+              details:
+                type: string
+                example: Unexpected error message
+            required:
+              - error

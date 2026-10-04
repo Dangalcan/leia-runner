@@ -1,0 +1,14 @@
+type: object
+required:
+  - sessionId
+  - actors
+properties:
+  sessionId:
+    type: string
+  actors:
+    type: array
+    minItems: 2
+    items:
+      $ref: './actor.yaml'
+  orchestration:
+    $ref: './orchestration.yaml'

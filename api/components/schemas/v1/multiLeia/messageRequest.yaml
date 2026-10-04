@@ -1,0 +1,9 @@
+type: object
+required:
+  - message
+properties:
+  message:
+    type: string
+  turnId:
+    type: string
+    description: Optional idempotency key for the participant turn.

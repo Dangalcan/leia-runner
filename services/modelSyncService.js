@@ -22,19 +22,29 @@ class ModelSyncService {
       this.isSyncing = true;
       const models = modelManager.getAvailableModels();
       const defaultModel = modelManager.getDefaultModel();
+      const apiKeyProvidersMap = modelManager.getApiKeyProvidersByModel();
+      const providerProviderModuleMap = modelManager.getProviderProviderModuleMap();
 
       // Save models in Redis
       await redisClient.set(
         `${this.keyPrefix}available`,
-        JSON.stringify(models),
-        { EX: 3600 } // 1 hour
+        JSON.stringify(models)
       );
 
       // Save default model
       await redisClient.set(
         `${this.keyPrefix}default`,
-        defaultModel,
-        { EX: 3600 } // 1 hour
+        defaultModel
+      );
+
+      await redisClient.set(
+        `${this.keyPrefix}apiKeyProviders`,
+        JSON.stringify(apiKeyProvidersMap)
+      );
+
+      await redisClient.set(
+        `${this.keyPrefix}providerProviderModuleMap`,
+        JSON.stringify(providerProviderModuleMap)
       );
 
       console.log('Models synchronized successfully in Redis');
@@ -52,14 +62,18 @@ class ModelSyncService {
    */
   async getModelsFromRedis() {
     try {
-      const [availableModels, defaultModel] = await Promise.all([
+      const [availableModels, defaultModel, apiKeyProviders, providerProviderModuleMap] = await Promise.all([
         redisClient.get(`${this.keyPrefix}available`),
-        redisClient.get(`${this.keyPrefix}default`)
+        redisClient.get(`${this.keyPrefix}default`),
+        redisClient.get(`${this.keyPrefix}apiKeyProviders`),
+        redisClient.get(`${this.keyPrefix}providerProviderModuleMap`)
       ]);
 
       return {
         models: JSON.parse(availableModels || '[]'),
-        default: defaultModel || modelManager.getDefaultModel()
+        default: defaultModel || modelManager.getDefaultModel(),
+        apiKeyProviders: JSON.parse(apiKeyProviders || '{}'),
+        providerProviderModuleMap: JSON.parse(providerProviderModuleMap || '{}')
       };
     } catch (error) {
       console.error('Error getting models from Redis:', error);
@@ -77,4 +91,4 @@ class ModelSyncService {
 }
 
 const modelSyncService = new ModelSyncService();
-module.exports = modelSyncService; 
+module.exports = modelSyncService;

@@ -1,0 +1,34 @@
+post:
+  tags:
+    - Problem Chat v1
+  operationId: openProblemChat
+  summary: Open a problem-chat assistant session
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/problemChat/sessionRequest.yaml'
+  responses:
+    '201':
+      description: Problem-chat session opened.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/problemChat/sessionResponse.yaml'
+    '401':
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/authError.yaml'
+    '500':
+      description: Failed to open problem chat.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Failed to open problem chat.
