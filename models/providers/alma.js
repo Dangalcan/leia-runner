@@ -3,76 +3,98 @@ const BaseModel = require('./baseModel');
 const Errors = require('../../utils/errors');
 const ProviderState = require('../providerState');
 const { ConversationStore } = require('../conversationStore');
+const ApiKeyProvider = require('../constants');
 
-const ALMA_HOST = process.env.ALMA_HOST || 'https://alma.us.es';
-const ALMA_MODEL = process.env.ALMA_MODEL || 'meta-llama/Llama-3.1-8B-Instruct';
-const ALMA_MODEL_NAME = process.env.ALMA_MODEL_NAME || 'llama-3.1-8b-instruct';
-const ALMA_MAX_TOKENS = parseInt(process.env.ALMA_MAX_TOKENS || '512', 10);
-const ALMA_TEMPERATURE = parseFloat(process.env.ALMA_TEMPERATURE || '0.7');
-
+const DEFAULT_BASE_URL = 'https://alma.us.es/api/models/llama-3.1-8b-instruct/v1';
+const DEFAULT_MODEL = 'meta-llama/Llama-3.1-8B-Instruct';
 const STOP_TOKENS = ['<|eot_id|>', '<|end_of_text|>', '<|im_end|>'];
 
+function readPositiveInt(name, fallback) {
+  const parsed = Number.parseInt(process.env[name], 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function readNumber(name, fallback) {
+  const parsed = Number.parseFloat(process.env[name]);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 /**
- * Model provider based on ALMA (alma.us.es).
- * Uses ConversationStore for Redis-backed conversation history and
- * ProviderState for session state, following the BaseModel contract.
+ * Model provider for ALMA (alma.us.es).
+ *
+ * ALMA serves each model behind its own OpenAI-compatible base URL,
+ * https://alma.us.es/api/models/{slug}/v1, and authenticates with the
+ * `apikey` header. The API key (and the base URL, when the key defines one)
+ * comes from the LEIA API key resolved by the modelManager; ALMA_BASE_URL is
+ * only the fallback. ALMA is stateless, so the conversation history lives in
+ * Redis through ConversationStore, like the Ollama provider.
  */
 class AlmaProvider extends BaseModel {
   constructor() {
     super();
     this.name = 'alma';
-    this.apiKeyEnvVar = 'ALMA_API_KEY';
+    this.apiKeyProvider = ApiKeyProvider.ALMA;
+    // Model id sent in the request body. vLLM answers to the raw Hugging Face
+    // repo id, which is not the URL slug of the base URL.
+    this.model = process.env.ALMA_MODEL || DEFAULT_MODEL;
+    this.baseUrl = (process.env.ALMA_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, '');
+    this.maxTokens = readPositiveInt('ALMA_MAX_TOKENS', 1024);
+    // Evaluations return Markdown inside JSON, which a short limit truncates.
+    this.evaluationMaxTokens = readPositiveInt('ALMA_EVALUATION_MAX_TOKENS', 2048);
+    this.temperature = readNumber('ALMA_TEMPERATURE', 0.7);
     this.conversationStore = new ConversationStore({ providerName: 'alma' });
   }
 
-  // Required for BaseModel
+  // Required by BaseModel
 
   /**
-   * Creates the ALMA "client". ALMA uses raw fetch rather than an SDK,
-   * so we return a lightweight config object satisfying the BaseModel pattern.
+   * ALMA is called with fetch, so the "client" is just its connection data.
    * @param {string} apiKey
-   * @returns {{ apiKey: string }}
+   * @returns {{ apiKey: string, baseUrl: string }}
    */
   createClient(apiKey) {
-    return { apiKey };
+    return { apiKey, baseUrl: this.baseUrl };
   }
 
   /**
-   * Sends a message to the ALMA model.
-   * Reads system instruction from ProviderState, builds the full conversation
-   * from ConversationStore (Redis), calls the API, stores the reply, and
-   * returns updated sessionData so the session is persisted.
-   *
+   * Sends a message to the ALMA model using the Redis-backed history.
    * @param {Object} options
-   * @param {string} options.sessionId    - Session ID (used as ConversationStore key)
-   * @param {string} options.message      - User message
-   * @param {Object} options.sessionData  - Session data from Redis
+   * @param {string} options.sessionId - Session ID (ConversationStore key)
+   * @param {string} options.message - User message
+   * @param {Object} options.sessionData - Session data from Redis
    * @returns {Promise<{ message: string, sessionData: Object }>}
    */
   async sendMessage(options) {
-    const { message, sessionData, sessionId } = options;
+    const { sessionId, message, sessionData } = options;
+
+    if (!sessionId) {
+      throw Errors.alma.missingSessionId();
+    }
+
     const state = new ProviderState(sessionData);
     const systemInstruction = state.getSystemInstruction();
 
     try {
-      // Build full conversation history (system + prior turns + new user message)
-      const messages = await this.conversationStore.buildConversationForRequest(
+      const conversationMessages = await this.conversationStore.buildConversationForRequest(
         sessionId,
         systemInstruction,
         message
       );
 
-      const response = await this._chat(messages);
+      const responseMessage = await this.createChatCompletion(conversationMessages, {
+        maxTokens: this.maxTokens,
+      });
 
-      // Persist assistant reply in Redis
-      await this.conversationStore.storeAssistantResponse(sessionId, response);
+      await this.conversationStore.storeAssistantResponse(sessionId, responseMessage);
 
-      // Keep systemInstruction in providerState so future turns can read it
-      state.update({ systemInstruction });
+      state.update({
+        conversationKey: this.conversationStore.getConversationKey(sessionId),
+        model: this.model,
+      });
 
       return {
-        message: response,
-        sessionData: state.buildSessionData(''),
+        message: responseMessage,
+        sessionData: state.buildSessionData(sessionId),
       };
     } catch (error) {
       throw Errors.alma.messageSendError(error);
@@ -80,25 +102,26 @@ class AlmaProvider extends BaseModel {
   }
 
   /**
-   * Generates the structured evaluation response from the model's raw output.
-   * Called by BaseModel.evaluateSolution() — do NOT override evaluateSolution().
-   *
-   * @param {string} prompt - Already built evaluation prompt (from Prompts.evaluation)
+   * Calls ALMA and returns the structured evaluation.
+   * Called by BaseModel.evaluateSolution.
+   * @param {string} prompt - Already built evaluation prompt
    * @returns {Promise<{ score: number, evaluation: string }>}
    */
   async generateEvaluationResponse(prompt) {
     try {
-      const messages = [
-        {
-          role: 'system',
-          content:
-            'You are an expert evaluator. Your task is to evaluate solutions to problems and provide detailed feedback. Respond only with valid JSON.',
-        },
-        { role: 'user', content: prompt },
-      ];
+      const responseMessage = await this.createChatCompletion(
+        [
+          {
+            role: 'system',
+            content:
+              'You are an expert evaluator. Your task is to evaluate solutions to problems and provide detailed feedback. Respond only with valid JSON.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        { maxTokens: this.evaluationMaxTokens }
+      );
 
-      const response = await this._chat(messages);
-      return JSON.parse(this.sanitizeJsonResponse(response));
+      return JSON.parse(this.sanitizeJsonResponse(responseMessage));
     } catch (error) {
       throw Errors.alma.evaluationError(error);
     }
@@ -107,55 +130,56 @@ class AlmaProvider extends BaseModel {
   // Helper methods
 
   /**
-   * Strips markdown code fences (```json ... ```) before JSON.parse.
-   * @param {string} text
-   * @returns {string}
-   */
-  sanitizeJsonResponse(text) {
-    const trimmed = text.trim();
-    const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-    return fenced ? fenced[1].trim() : trimmed;
-  }
-
-  /**
-   * Makes a POST request to the ALMA chat completions endpoint.
+   * POSTs to {baseUrl}/chat/completions and returns the trimmed reply.
    * @param {Array<{ role: string, content: string }>} messages
-   * @returns {Promise<string>} Trimmed response text
+   * @param {{ maxTokens: number }} options
+   * @returns {Promise<string>}
    */
-  async _chat(messages) {
-    const apiKey = this.getApiKey();
-    const url = `${ALMA_HOST}/api/models/${ALMA_MODEL_NAME}/v1/chat/completions`;
+  async createChatCompletion(messages, { maxTokens }) {
+    const apiKey = this.ensureApiKey();
 
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(apiKey && { apikey: apiKey }),
-    };
-
-    const body = JSON.stringify({
-      model: ALMA_MODEL,
-      messages,
-      max_tokens: ALMA_MAX_TOKENS,
-      temperature: ALMA_TEMPERATURE,
-      top_p: 1,
-      stop: STOP_TOKENS,
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: apiKey,
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages,
+        max_tokens: maxTokens,
+        temperature: this.temperature,
+        top_p: 1,
+        stop: STOP_TOKENS,
+      }),
     });
 
-    const res = await fetch(url, { method: 'POST', headers, body });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`ALMA API error ${res.status}: ${text}`);
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`ALMA request failed (${response.status}): ${errorBody}`);
     }
 
-    const data = await res.json();
-    const content = data?.choices?.[0]?.message?.content;
+    const responseData = await response.json();
+    const content = responseData?.choices?.[0]?.message?.content;
 
-    if (!content) {
+    if (typeof content !== 'string' || !content.trim()) {
       throw Errors.alma.noTextContent();
     }
 
     return content.trim();
   }
+
+  /**
+   * Strips Markdown code fences (```json ... ```) before JSON.parse.
+   * @param {string} responseText
+   * @returns {string}
+   */
+  sanitizeJsonResponse(responseText) {
+    const trimmedResponse = responseText.trim();
+    const fencedMatch = trimmedResponse.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+
+    return fencedMatch ? fencedMatch[1].trim() : trimmedResponse;
+  }
 }
 
-module.exports = new AlmaProvider();
+module.exports = AlmaProvider;

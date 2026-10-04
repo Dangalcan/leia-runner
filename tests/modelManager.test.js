@@ -211,4 +211,14 @@ describe('Mapeo proveedor de clave - modelo', () => {
 
     expect(modelManager.getApiKeyProvidersByModel()).toEqual({});
   });
+
+  test('carga el proveedor ALMA como clase y lo expone para las claves de tipo alma', async () => {
+    const AlmaProvider = require('../models/providers/alma');
+
+    await modelManager.loadModels();
+
+    expect(modelManager.providerModules.get('alma')).toBe(AlmaProvider);
+    expect(modelManager.getApiKeyProvidersByModel().alma).toEqual([new AlmaProvider().model]);
+    expect(modelManager.getProviderProviderModuleMap().alma).toBe('alma');
+  });
 });

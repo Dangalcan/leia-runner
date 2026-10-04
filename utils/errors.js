@@ -80,6 +80,9 @@ const ollama = {
 };
 
 const alma = {
+  missingSessionId: () =>
+    createError(400, 'sessionId is required to use ALMA provider'),
+
   noTextContent: () =>
     createError(500, 'ALMA did not return text content'),
 
