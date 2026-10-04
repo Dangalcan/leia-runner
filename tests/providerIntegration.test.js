@@ -10,6 +10,9 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite-preview';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+// Set by CI on pull requests from forks, which get no secrets: a missing key
+// skips that provider's test instead of failing it.
+const PROVIDER_KEYS_OPTIONAL = process.env.PROVIDER_KEYS_OPTIONAL === 'true';
 
 const openaiResponsesProvider = new OpenAIResponsesProvider();
 const geminiProvider = new GeminiProvider();
@@ -115,7 +118,7 @@ afterAll(() => {
 });
 
 describe('LLM integration tests', () => {
-  test('calls OpenAI structured endpoint successfully', { timeout: 120000 }, async () => {
+  test.skipIf(PROVIDER_KEYS_OPTIONAL && !OPENAI_API_KEY)('calls OpenAI structured endpoint successfully', { timeout: 120000 }, async () => {
     process.env.AI_PROVIDER = 'openai';
 
     const result = await runWithSchemaRetry(async () =>
@@ -146,7 +149,7 @@ describe('LLM integration tests', () => {
     });
   });
 
-  test('calls Gemini structured endpoint successfully', { timeout: 120000 }, async () => {
+  test.skipIf(PROVIDER_KEYS_OPTIONAL && !GEMINI_API_KEY)('calls Gemini structured endpoint successfully', { timeout: 120000 }, async () => {
     process.env.AI_PROVIDER = 'gemini';
 
     const result = await runWithSchemaRetry(async () =>
