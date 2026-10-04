@@ -2,6 +2,7 @@ type: object
 properties:
   provider:
     type: string
+    description: Provider module, as listed by GET /v1/models (openai-responses, gemini-3.1-flash-lite-preview, ollama, alma).
     example: openai-responses
   modelName:
     type: string

@@ -5,11 +5,12 @@ properties:
     items:
       type: string
     example:
-      - gpt-4o-mini
-      - gpt-4o
+      - alma
+      - gemini-3.1-flash-lite-preview
+      - openai-responses
   default:
     type: string
-    example: gpt-4o-mini
+    example: openai-responses
   apiKeyProviders:
     type: object
     additionalProperties:
@@ -18,17 +19,19 @@ properties:
         type: string
     example:
       openai:
-        - gpt-4o-mini
-        - gpt-4o
+        - gpt-5.4-mini
       gemini:
-        - gemini-1.5-flash
+        - gemini-3.1-flash-lite-preview
+      alma:
+        - meta-llama/Llama-3.1-8B-Instruct
   providerProviderModuleMap:
     type: object
     additionalProperties:
       type: string
     example:
-      openai-responses: openai-responses
-      gemini-3.1-flash-lite-preview: gemini-3.1-flash-lite-preview
+      openai: openai-responses
+      gemini: gemini-3.1-flash-lite-preview
+      alma: alma
 required:
   - models
   - default
