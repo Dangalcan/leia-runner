@@ -115,6 +115,34 @@ afterAll(() => {
 });
 
 describe('LLM integration tests', () => {
+  test.skipIf(!GEMINI_API_KEY)('Gemini follows instructor opening despite conflicting persona pacing rules', { timeout: 120000 }, async () => {
+    // Synthetic role-play deliberately conflicts with the requested opening:
+    // a user-role startup can be interpreted as dialogue and answered instead.
+    const instructions = [
+      'Role-play Morgan, a busy restaurant owner speaking to an engineer gathering requirements for a reservation platform.',
+      'Diners reserve tables for a date, time, and party size. Staff confirm reservations. Stay in character as the business owner.',
+      'Be strict, pragmatic, concise, passive, and very busy. The participant must guide the interview.',
+      'Only respond to concrete questions. Never offer assistance or additional suggestions. Never end your responses with questions. Let the participant lead.',
+    ].join('\n\n');
+    const opening = 'Hello! What should I call you?';
+    const sessionData = await geminiProvider.createSession({ instructions });
+    const first = await geminiProvider.sendMessage({
+      message: `Start the conversation now. This is an internal startup instruction, not a student message. Your first message must follow these instructor instructions: ${opening}`,
+      sessionData,
+      opening: true,
+    });
+    expect(first.message).toBe(opening);
+    expect(first.sessionData.providerState).toMatchObject({
+      systemInstruction: instructions, firstAssistantMessage: opening, openingPending: true,
+    });
+    const next = await geminiProvider.sendMessage({
+      message: 'Repeat your first message verbatim.', sessionData: first.sessionData,
+    });
+    expect(next.message).toContain(opening);
+    expect(next.sessionData.providerState.openingPending).toBe(false);
+    expect(next.sessionData.threadId).toBeTruthy();
+  });
+
   test('calls OpenAI structured endpoint successfully', { timeout: 120000 }, async () => {
     process.env.AI_PROVIDER = 'openai';
 

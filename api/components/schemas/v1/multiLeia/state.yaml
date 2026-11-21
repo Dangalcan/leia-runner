@@ -1,0 +1,56 @@
+type: object
+required:
+  - sessionId
+  - status
+  - actors
+  - graph
+  - maxInternalTurns
+  - openingActorId
+  - problemActorId
+  - lastSequence
+properties:
+  sessionId:
+    type: string
+  status:
+    type: string
+    enum: [running, awaiting_user]
+  actors:
+    type: array
+    items:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+  graph:
+    type: object
+    additionalProperties: true
+  maxInternalTurns:
+    type: integer
+    minimum: 1
+    maximum: 8
+  openingActorId:
+    type: string
+  problemActorId:
+    type: string
+  nextActorId:
+    type: string
+    nullable: true
+  lastPartial:
+    type: object
+    nullable: true
+    properties:
+      turnId:
+        type: string
+      actorId:
+        type: string
+      actorName:
+        type: string
+      timestamp:
+        type: string
+        format: date-time
+  lastSequence:
+    type: integer

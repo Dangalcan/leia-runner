@@ -1,0 +1,28 @@
+post:
+  tags:
+    - MultiLEIA v1
+  operationId: streamMultiLeiaMessage
+  summary: Stream each public agent message while traversing the virtual graph
+  parameters:
+    - name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/multiLeia/messageRequest.yaml'
+  responses:
+    '200':
+      description: Server-sent events named ready, route, message, complete and error.
+      content:
+        text/event-stream:
+          schema:
+            type: string
+    '404':
+      description: Runtime not found. Delivered as an SSE error event after the stream opens.
+    '409':
+      description: Another graph traversal is running. Delivered as an SSE error event after the stream opens.

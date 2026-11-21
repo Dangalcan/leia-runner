@@ -1,0 +1,30 @@
+post:
+  tags:
+    - MultiLEIA v1
+  operationId: createMultiLeia
+  summary: Create a text-only MultiLEIA runtime
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/multiLeia/createRequest.yaml'
+  responses:
+    '201':
+      description: Runtime created.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/multiLeia/createResponse.yaml'
+    '400':
+      description: Invalid actors or orchestration.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/error.yaml'
+    '409':
+      description: Session already exists.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/error.yaml'

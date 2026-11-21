@@ -1,0 +1,15 @@
+type: object
+required:
+  - id
+  - leia
+  - runnerConfiguration
+properties:
+  id:
+    type: string
+  name:
+    type: string
+  leia:
+    type: object
+    additionalProperties: true
+  runnerConfiguration:
+    $ref: '../common/runnerConfiguration.yaml'

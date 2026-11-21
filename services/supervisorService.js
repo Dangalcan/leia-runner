@@ -77,7 +77,7 @@ function buildSystemPrompt(config = {}) {
 
   lines.push(
     '',
-    'Only report what is supported by the transcript. Do not invent. Never reveal the activity solution. Write `note`, `category` and `nudge` in the same language the student is using.',
+    'Only report what is supported by the transcript. Do not invent. Never reveal the activity solution. Always write `note`, `category` and `nudge` in English, regardless of the transcript language or the instructor instructions language.',
     'Do not return a flag for a student quote or behaviour that is already listed in EXISTING FLAGS. If the same behaviour continues, only flag new student evidence that is not already covered by a previous flag.',
   );
 

@@ -10,6 +10,8 @@ const behaviourGeneratorController = require('../controllers/behaviourGeneratorC
 const problemChatController = require('../controllers/problemChatController');
 const supervisorController = require('../controllers/supervisorController');
 const imageGenerationController = require('../controllers/imageGenerationController');
+const multiLeiasController = require('../controllers/multiLeiasController');
+const conversationDynamicsController = require('../controllers/conversationDynamicsController');
 const multer = require('multer');
 const { bearerAuth } = require('../utils/auth');
 
@@ -24,6 +26,14 @@ router.post('/leias', leiasController.createLeia);
 
 // Endpoint para enviar mensajes a LEIA
 router.post('/leias/:sessionId/messages', leiasController.sendLeiaMessage);
+
+// Text-only MultiLEIA runtime. Each actor gets an isolated provider session;
+// the runtime traverses an implicit graph and returns the public messages
+// generated before control goes back to the participant.
+router.post('/multi-leias', multiLeiasController.createMultiLeia);
+router.get('/multi-leias/:sessionId', multiLeiasController.getMultiLeiaState);
+router.post('/multi-leias/:sessionId/messages', multiLeiasController.sendMultiLeiaMessage);
+router.post('/multi-leias/:sessionId/messages/stream', multiLeiasController.streamMultiLeiaMessage);
 
 // Endpoint para listar los modelos disponibles
 router.get('/models', modelsController.listModels);
@@ -55,5 +65,6 @@ router.post('/problems/chat/:chatId/messages', problemChatController.sendProblem
 // Background supervisor (stateless): observe an activity transcript window and
 // return flags (+ optional student nudge). Called fire-and-forget by the workbench.
 router.post('/supervisor', supervisorController.observe);
+router.post('/conversation-dynamics/evaluate', conversationDynamicsController.evaluate);
 
 module.exports = router;

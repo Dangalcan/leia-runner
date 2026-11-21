@@ -22,6 +22,8 @@ security:
 tags:
   - name: Leias v1
     description: LEIA runtime session endpoints
+  - name: MultiLEIA v1
+    description: Deterministic text-only multi-agent runtime endpoints
   - name: Models v1
     description: Available model endpoints
   - name: Evaluation v1
@@ -44,6 +46,14 @@ paths:
     $ref: './paths/v1/leias/index.yaml'
   /v1/leias/{sessionId}/messages:
     $ref: './paths/v1/leias/_sessionId-messages.yaml'
+  /v1/multi-leias:
+    $ref: './paths/v1/multi-leias/index.yaml'
+  /v1/multi-leias/{sessionId}:
+    $ref: './paths/v1/multi-leias/_sessionId.yaml'
+  /v1/multi-leias/{sessionId}/messages:
+    $ref: './paths/v1/multi-leias/_sessionId-messages.yaml'
+  /v1/multi-leias/{sessionId}/messages/stream:
+    $ref: './paths/v1/multi-leias/_sessionId-messages-stream.yaml'
   /v1/models:
     $ref: './paths/v1/models/index.yaml'
   /v1/evaluation:
@@ -64,6 +74,8 @@ paths:
     $ref: './paths/v1/problem-chat/_chatId-files.yaml'
   /v1/problems/chat/{chatId}/messages:
     $ref: './paths/v1/problem-chat/_chatId-messages.yaml'
+  /v1/conversation-dynamics/evaluate:
+    $ref: './paths/v1/conversation-dynamics/evaluate.yaml'
   /v1/supervisor:
     $ref: './paths/v1/supervisor/index.yaml'
   /v1/revoke:

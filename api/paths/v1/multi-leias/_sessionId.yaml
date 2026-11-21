@@ -1,0 +1,24 @@
+get:
+  tags:
+    - MultiLEIA v1
+  operationId: getMultiLeiaState
+  summary: Read the public state of a MultiLEIA runtime
+  parameters:
+    - name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    '200':
+      description: Current public runtime state.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/multiLeia/state.yaml'
+    '404':
+      description: Runtime not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/error.yaml'

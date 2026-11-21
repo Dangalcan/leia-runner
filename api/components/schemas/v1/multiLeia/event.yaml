@@ -1,0 +1,35 @@
+type: object
+required:
+  - sequence
+  - senderType
+  - senderId
+  - senderName
+  - recipientIds
+  - text
+  - turnId
+properties:
+  sequence:
+    type: integer
+  timestamp:
+    type: string
+    format: date-time
+  senderType:
+    type: string
+    enum: [participant, agent, system]
+  senderId:
+    type: string
+  senderName:
+    type: string
+  recipientIds:
+    type: array
+    items:
+      type: string
+  addressedToId:
+    type: string
+    description: Primary addressee selected by the private coordinator.
+  addressedToName:
+    type: string
+  text:
+    type: string
+  turnId:
+    type: string

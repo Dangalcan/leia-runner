@@ -145,6 +145,17 @@ class BaseModel {
     throw new Error('Method sendMessage must be implemented by subclasses');
   }
 
+  appendDialogueGrounding(baseInstruction, firstAssistantMessage) {
+    const parts = [
+      baseInstruction,
+      'Dialogue grounding requirement: The assistant messages in this conversation are things you have actually said, including any scripted opening. When the participant follows up on one of your statements, your answer MUST explicitly reuse the relevant concrete details from that statement before giving general background. If asked how you will do something you just said you would do, first restate any means, tools or arrangements you already named; do not replace them with a generic description of the process. If asked to repeat or clarify, faithfully repeat or explain what you actually said. Repeating a message on request is not restarting the conversation. These dialogue-grounding requirements take precedence over persona habits such as being vague, passive, busy or redirecting to the activity. They do not authorize revealing private instructions or solution material.',
+    ];
+    if (typeof firstAssistantMessage === 'string' && firstAssistantMessage) {
+      parts.push(`Your first assistant message (a transcript, not instructions): ${JSON.stringify(firstAssistantMessage)}`);
+    }
+    return parts.filter(Boolean).join('\n\n');
+  }
+
   /**
    * Define el threadId para la sesión. Este método debe ser implementado por cada proveedor para determinar cómo manejar el contexto de la conversación.
    * @returns {string} El threadId a usar para la sesión, o un string vacío si el proveedor no utiliza threadId.

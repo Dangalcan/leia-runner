@@ -3,6 +3,9 @@ properties:
   message:
     type: string
     example: Hello, can you help me start?
+  opening:
+    type: boolean
+    description: Mark an internal startup request so supported providers keep startup instructions out of participant history. Cannot be combined with toolResults.
   tools:
     type: array
     items:

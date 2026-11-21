@@ -3,7 +3,7 @@ const modelManager = require('../models/modelManager');
 
 module.exports.createLeia = async function createLeia(req, res) {
   try {
-    const { sessionId, leia } = req.body;
+    const { sessionId, leia, language } = req.body;
     const runnerConfiguration = req.body.runnerConfiguration || { provider: 'default' };
 
     if (!sessionId || !leia) {
@@ -22,7 +22,7 @@ module.exports.createLeia = async function createLeia(req, res) {
     }
 
     // Extract necessary information from leia for instructions
-    const instructions = buildInstructionsFromLeia(leia);
+    const instructions = buildInstructionsFromLeia(leia, language);
 
     // Determine which model provider to use
     const { provider, modelName, apiKeyId, apiKeyRequesterId } = runnerConfiguration; 
@@ -72,11 +72,14 @@ module.exports.createLeia = async function createLeia(req, res) {
 module.exports.sendLeiaMessage = async function sendLeiaMessage(req, res) {
   try {
     const sessionId = req.params.sessionId;
-    const { message, tools, toolResults } = req.body;
+    const { message, tools, toolResults, opening } = req.body;
 
     const hasToolResults = Array.isArray(toolResults) && toolResults.length > 0;
     if (!sessionId || (!message && !hasToolResults)) {
       return res.status(400).send({ error: 'SessionId and message (or toolResults) are required' });
+    }
+    if ((opening !== undefined && typeof opening !== 'boolean') || (opening === true && hasToolResults)) {
+      return res.status(400).send({ error: 'opening must be a boolean and cannot be combined with toolResults' });
     }
 
     // Check if session exists
@@ -86,7 +89,7 @@ module.exports.sendLeiaMessage = async function sendLeiaMessage(req, res) {
     }
 
     // Send message through the session service
-    const response = await sessionService.sendMessage(sessionId, message, { tools, toolResults });
+    const response = await sessionService.sendMessage(sessionId, message, { tools, toolResults, opening: opening === true });
 
     res.status(200).send(response);
   } catch (error) {
@@ -98,9 +101,39 @@ module.exports.sendLeiaMessage = async function sendLeiaMessage(req, res) {
 /**
  * Builds instructions for the model from the LEIA configuration
  * @param {Object} leia - LEIA configuration
+ * @param {string} language - The language of the LEIA
  * @returns {string} - Instructions for the model
  */
-function buildInstructionsFromLeia(leia) {
-  let instructions = leia.spec?.behaviour?.spec?.description || '';
-  return instructions;
+function buildInstructionsFromLeia(leia, language) {
+  const behaviourDescription = leia.spec?.behaviour?.spec?.description || '';
+  const normalizedLanguage = typeof language === 'string' && language.trim()
+    ? language.trim()
+    : 'en';
+  const languageInstruction = `
+    The preferred response language is "${normalizedLanguage}".
+
+    Interpret this value as a language or locale identifier. It may be provided as:
+    - ISO 639-1 language codes: "en", "es", "de", "fr", "it", "pt", etc.
+    - Locale codes: "en-US", "en-GB", "es-ES", "es-MX", "de-DE", etc.
+    - Full language names: "English", "Spanish", "German", "French", etc.
+    - Language names in other languages: "inglés", "español", "alemán", "francés", etc.
+
+    For example:
+    - "en" means English.
+    - "en-US" means American English.
+    - "en-GB" means British English.
+    - "es" means Spanish.
+    - "es-ES" means Spanish from Spain.
+    - "de" means German.
+    - "de-DE" means German from Germany.
+
+    By default, respond in the language specified by this value.
+    If the user clearly speaks to you in another language and is expecting a response in that language, respond in that language instead.
+    `;
+
+  const stopping = leia.spec?.behaviour?.spec?.conversationDynamics?.stoppingCondition;
+  const dynamics = stopping?.enabled === true
+    ? `Conversation stopping condition: ${stopping.config.condition}. When met, conclude naturally and tell the student the conversation has ended.`
+    : '';
+  return [languageInstruction, behaviourDescription, dynamics].filter(Boolean).join('\n\n');
 }

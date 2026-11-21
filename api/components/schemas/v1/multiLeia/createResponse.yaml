@@ -1,0 +1,12 @@
+type: object
+required:
+  - sessionId
+  - created
+  - state
+properties:
+  sessionId:
+    type: string
+  created:
+    type: boolean
+  state:
+    $ref: './state.yaml'

@@ -2,6 +2,7 @@ const { OpenAI, toFile } = require('openai');
 const { redisClient } = require('../config/redis');
 const apiKeyService = require('./apiKeyService');
 const { normalizeTools } = require('../utils/problemChatTools');
+const { CORE_PLACEHOLDERS } = require('../utils/behaviourTemplate');
 
 // Same tool wire-format as the LEIA message flow: the FE sends tools as
 // { name, description, parameters }; we return { toolCalls:[{callId,name,arguments}] }
@@ -38,35 +39,59 @@ function extractResponseText(response) {
 const STORE_PREFIX = 'problemchat:';
 const TTL_SECONDS = 6 * 60 * 60; // 6h — design-time assistant, ephemeral.
 
-// Design-time assistant. The editor registers all tools for the four LEIA
-// resources; here we describe how and when to use them.
-const SYSTEM_PROMPT = [
+// Design-time assistant. Tool availability is role-dependent: basic users can
+// select a Behaviour but cannot author the base resource.
+const BASE_SYSTEM_PROMPT = [
   'You help an instructor design a whole LEIA for an educational platform where students practice by interacting with an AI that simulates a real-world scenario. A LEIA is made of four resources: a PROBLEM (the scenario/task the student works on), a BEHAVIOUR (the role the AI plays opposite the student), a PERSONA (the character the AI embodies), and a RUBRIC (the criteria used to evaluate the student\'s work).',
   'A LEIA problem spec has: description, personaBackground, details, solution, initialSolution, solutionFormat (one of: text, mermaid, yaml, markdown, html, json, xml), evaluationPrompt, process, the advanced composition fields extends/overrides/constrainedTo, and optionally widgets (interactive tools the activity uses).',
   'A behaviour spec has: description (how the AI acts, what it knows/withholds), role, process[], tooltip. A persona spec has: fullName, firstName, description, personality, and pronouns (subjectPronoum/objectPronoum/possesivePronoum/possesiveAdjective).',
   'A rubric resource is structured JSON with apiVersion "v1", metadata.name, and spec.sections. Every section has title, numeric weight, ordered levels, and criteria. Every criterion has a name and one descriptor per level ({level, description}). Section weights must total 100. Levels must be ordered from worst to best. The rubric assesses whether the student can explain, justify and apply the concepts, decisions and trade-offs behind their solution, not only whether the final output looks correct.',
   'Tools, provided by the editor (call get_current_* before modifying an existing resource):',
   '- get_current_problem() / apply_problem(spec): read / write the problem.',
-  '- get_current_behaviour() / apply_behaviour(spec): read / write the behaviour.',
+  '- get_current_behaviour(): read the selected behaviour. apply_behaviour is available only when the current user may author Behaviour resources.',
   '- get_current_persona() / apply_persona(spec): read / write the persona.',
   '- get_current_rubric() / apply_rubric(rubric): read / write the complete structured rubric.',
+  '- list_problems() / use_problem(id): list accessible EXISTING problems and select one.',
+  '- list_behaviours() / use_behaviour(id): list accessible saved behaviours AND previous drafts from this conversation and select one, including a generated-* draft id actually returned by the latest list.',
   '- list_personas() / use_persona(id): list the instructor\'s EXISTING personas and reuse one by id when suitable.',
-  'Every apply_* must set a short kebab-case resource name. For apply_rubric put it in metadata.name; the other tools use their top-level name argument.',
-  'Guidance:',
-  '- When the user asks for an activity/LEIA (or attaches a PDF), assemble the WHOLE LEIA: a problem, a behaviour, a persona and a rubric that fit together. Always create a NEW behaviour with apply_behaviour, tailored to the exact problem being created; never reuse or copy an exercise-specific behaviour from a different activity. For the persona, first call list_personas and reuse it with use_persona when suitable, or create one with apply_persona. Write the problem with apply_problem and then create an evaluation rubric with apply_rubric whose criteria directly assess the requested task and solution. Do not wait for the instructor to ask for the rubric separately. If the user only asks a question and does not request an editor change, answer without applying resources.',
-  '- The behaviour must be semantically consistent with the current problem, not merely share its broad process tag. Include the actual subject, task and technology or programming language when relevant. For example, a Python exercise about files, APIs or sorting must not receive an anagrams behaviour simply because both are Python exercises.',
-  '- Whenever apply_problem creates or materially changes a problem, also call apply_behaviour in the same turn so the editor never keeps a behaviour from the previous exercise.',
+  'Every apply_* must set a short kebab-case resource name — ALWAYS set it so the instructor does not have to rename the resource afterwards. For apply_rubric put it in metadata.name; the other tools use their top-level name argument.',
+  'Mandatory reuse-first workflow:',
+  '- When the user asks for an activity/LEIA (or attaches a PDF), infer the requested scenario, learning objective, process, expected solution, AI role, persona and evaluation criteria before choosing resources.',
+  '- Before creating a Problem, call list_problems. Use use_problem when an existing Problem materially matches the scenario, learning objective and expected output. Call apply_problem only after inspecting the list and only when no suitable Problem exists. A merely related topic is not a match.',
+  '- After the final Problem is selected or created, call list_behaviours. Use use_behaviour when an existing Behaviour has the needed role and its process list exactly matches the Problem process. Do not require exercise-specific wording when a generic reusable role already supplies the right interaction pattern.',
+  '- When the user changes only the Problem scenario (for example, from a library to a gym), first inspect the current Behaviour. A reusable role whose {{problem.*}} and {{persona.*}} references provide the changing context should be reused unchanged. Applying a Problem temporarily clears the Behaviour selection, but the previous draft remains in list_behaviours; explicitly reselect it with use_behaviour after inspecting that list. Do not create a replacement merely because the scenario changed. Still reject incompatible hardcoded case instructions or a different process.',
+  '- Before creating a Persona, call list_personas. Use use_persona when an existing character can naturally play the requested role. Call apply_persona only when no suitable Persona exists.',
+  '- A list_* call and its corresponding apply_* call MUST NOT be made in the same response. Call list_*, wait for its tool result, inspect that result, and only then decide between use_* and apply_*.',
+  '- Call use_problem/use_behaviour/use_persona only with an id present in the corresponding latest list_* result. Never invent ids. A previous Behaviour draft is a valid reuse candidate when its generated-* id is returned by list_behaviours; selecting it preserves that exact draft instead of creating a duplicate.',
+  '- Never create a near-duplicate merely to change a name, phrasing, subject example or other non-material detail. Prefer an existing resource plus the Problem composition fields when appropriate.',
+  '- If a different Problem is selected or created, do not silently retain an old Behaviour. Explicitly select a compatible Behaviour after searching the library.',
   '- For every process array, "other" is exclusive. Use ["other"] by itself, or use one or more concrete values from "requirements-elicitation" and "game" without "other".',
-  '- Whenever apply_problem creates or materially changes a problem for a complete activity, also call apply_rubric in the same turn. The rubric must be specific to the current problem, its learning objectives and the expected solution; never copy an unrelated rubric from a previous activity.',
+  '- Whenever assembling a complete activity or materially changing its Problem, also create or update an evaluation rubric with apply_rubric whose criteria directly assess the requested task, learning objectives and expected solution. Do not wait for the instructor to ask for the rubric separately, and never copy an unrelated rubric from a previous activity.',
+  '- If the user only asks a question and does not request an editor change, answer without applying resources.',
   '- If the user attaches a PDF and asks to convert it into a problem, read the PDF, reconstruct the scenario, and call apply_problem with a complete spec. If the solution should be a diagram, put valid mermaid in `solution` and set solutionFormat to "mermaid".',
-  '- If the user asks to change the current problem, call get_current_problem first, then apply_problem with the updated spec.',
+  '- If the user asks to change the current problem, call get_current_problem and get_current_behaviour first, inspect list_problems, then apply_problem with the updated spec if necessary. Preserve existing Problem template references while updating its domain content.',
   '- Keep description/personaBackground/details/solution internally consistent. Template tags like {{persona.firstName}} may be used where natural.',
+  `- New or edited Behaviour descriptions must remain reusable runtime templates. Include these references: ${CORE_PLACEHOLDERS.join(', ')}. Preserve any additional template references from the previous Behaviour when editing it. Use references for the scenario, case details, expected solution and persona instead of hardcoding them. A tool error with missingReferences means the editor was not changed: fix those references and retry, or reuse the compatible previous Behaviour.`,
   '- Fill every field you reasonably can.',
   '- extends/overrides/constrainedTo customize the persona/behaviour/problem the activity is paired with. Each is keyed by component (persona/behaviour/problem); each component is { spec: {...fields}, apiVersion? }. extends ADDS to a spec, overrides REPLACES fields, constrainedTo CONSTRAINS. Example: {"extends":{"persona":{"spec":{"personality":["amigable","despistado"]}}},"overrides":{"behaviour":{"spec":{"role":"alumno de instituto"}}},"constrainedTo":{"behaviour":{"spec":{"process":["requirements-elicitation"]},"apiVersion":"v1"}}}. Leave them as {} unless the user asks to customize the persona/behaviour.',
   '- Add widgets ONLY when the activity needs an interactive tool (e.g. a coding exercise needs the code editor). The apply_problem tool lists the available widgets and their tool functions; for each tool you may set enabled and a usage note describing when LEIA should use it.',
   '- After applying, briefly summarise what you created or changed. If you cannot produce a valid problem (e.g. the PDF is empty or unreadable), explain why instead of calling apply_problem.',
   'Always respond in the same language as the user or the attached document.',
-].join('\n');
+];
+
+function buildSystemPrompt(tools) {
+  const toolNames = new Set(
+    (Array.isArray(tools) ? tools : [])
+      .map((tool) => tool?.name)
+      .filter((name) => typeof name === 'string'),
+  );
+  const canAuthorBehaviour = toolNames.has('apply_behaviour');
+  const behaviourRule = canAuthorBehaviour
+    ? '- You may call apply_behaviour only after list_behaviours proves there is no suitable existing Behaviour. Its process must exactly match the final Problem process.'
+    : '- You cannot author or edit the base Behaviour resource. Never request apply_behaviour. Select an existing Behaviour with use_behaviour only if its role is suitable and its process exactly matches the Problem. If the list contains no compatible Behaviour, do not select an approximate one and do not keep trying other tools: leave Behaviour unselected and immediately explain that an advanced user or administrator must create it. You may still use extends, overrides or constrainedTo inside the Problem to customize a compatible selected Behaviour for this activity.';
+
+  return [...BASE_SYSTEM_PROMPT, behaviourRule].join('\n');
+}
 
 class ProblemChatService {
   _key(chatId) {
@@ -157,7 +182,10 @@ class ProblemChatService {
       model,
       input,
       store: true,
-      instructions: SYSTEM_PROMPT,
+      instructions: buildSystemPrompt(normalizedTools),
+      // Resource selection is order-sensitive: the model must receive a
+      // list_* result before it can safely choose use_* or apply_*.
+      parallel_tool_calls: false,
     };
     if (session.responseId) payload.previous_response_id = session.responseId;
     if (normalizedTools) payload.tools = normalizedTools;
@@ -179,3 +207,5 @@ class ProblemChatService {
 }
 
 module.exports = new ProblemChatService();
+module.exports.buildSystemPrompt = buildSystemPrompt;
+module.exports.normalizeTools = normalizeTools;

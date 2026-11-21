@@ -1,0 +1,36 @@
+post:
+  tags:
+    - MultiLEIA v1
+  operationId: sendMultiLeiaMessage
+  summary: Traverse the virtual graph until control returns to the participant
+  parameters:
+    - name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../../../components/schemas/v1/multiLeia/messageRequest.yaml'
+  responses:
+    '200':
+      description: Ordered public agent messages from the traversal.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/multiLeia/messageResponse.yaml'
+    '404':
+      description: Runtime not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/error.yaml'
+    '409':
+      description: Another graph traversal is already running.
+      content:
+        application/json:
+          schema:
+            $ref: '../../../components/schemas/v1/common/error.yaml'

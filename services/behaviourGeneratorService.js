@@ -1,5 +1,6 @@
 const z = require("zod");
 const structuredGenerationService = require("./structuredGenerationService");
+const { CORE_PLACEHOLDERS } = require("../utils/behaviourTemplate");
 
 const BehaviourSpecSchema = z.object({
     description: z.string().min(20).describe("Detailed behavioural instructions for the LEIA role, preserving template tags"),
@@ -8,17 +9,6 @@ const BehaviourSpecSchema = z.object({
 });
 
 const ALLOWED_PROCESS = ["requirements-elicitation", "game"];
-const CORE_PLACEHOLDERS = [
-    "{{problem.details}}",
-    "{{problem.description}}",
-    "{{persona.personality}}",
-    "{{persona.fullName}}",
-    "{{persona.description}}",
-    "{{problem.personaBackground}}",
-    "{{problem.solution}}",
-    "{{behaviour.role}}",
-];
-
 const BehaviourSpecResponseFormat = {
     type: "object",
     properties: {

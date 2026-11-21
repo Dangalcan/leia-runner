@@ -44,6 +44,9 @@ const openAI = {
 
 const gemini = {
 
+  responseError: (message) =>
+    createError(500, message || 'Gemini devolvio un error al generar la respuesta'),
+
   noTextContent: () => createError(500, 'Gemini no devolvio contenido de texto'),
 
   noEvaluationContent: () =>

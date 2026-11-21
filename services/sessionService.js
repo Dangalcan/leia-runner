@@ -112,6 +112,13 @@ class SessionService {
     }
   }
 
+  async deleteSession(sessionId) {
+    await redisClient.del([
+      `${this.keyPrefix}${sessionId}`,
+      `${this.leiaMetaPrefix}${sessionId}`,
+    ]);
+  }
+
   async sendMessage(sessionId, message, options = {}) {
     try {
       // Get the session
@@ -121,12 +128,12 @@ class SessionService {
         return null; // Return null instead of throwing an error
       }
 
-      // Honor the activity-level gate set at createLeia. If the LEIA was
-      // not configured with widgets/toolfunctions, tools coming in on the
-      // request are ignored (and so are toolResults, since they wouldn't
-      // belong to any prior tool call).
+      // Honor the activity-level gate set at createLeia. Trusted Runner-only
+      // sessions, such as the private MultiLEIA coordinator, can explicitly
+      // enable their internal tools without exposing them to participants.
       const leiaMeta = await this.getLeiaMeta(sessionId);
-      const allowTools = leiaMeta?.toolFunctionsEnabled === 'true';
+      const allowTools =
+        options.internalTools === true || leiaMeta?.toolFunctionsEnabled === 'true';
 
       // Get the model for this session (BYOK: resolved by provider + api key).
       const sessionModelToken = `${sessionData.provider}:${sessionData.modelName}:${sessionData.apiKeyId}`;
@@ -137,9 +144,13 @@ class SessionService {
         sessionId,
         message,
         sessionData,
+        opening: options.opening === true,
         allowTools,
         tools: allowTools ? options.tools : undefined,
         toolResults: allowTools ? options.toolResults : undefined,
+        internalTools: options.internalTools === true,
+        parallelToolCalls: options.parallelToolCalls,
+        toolChoice: options.toolChoice,
       });
 
       if (response?.sessionData) {

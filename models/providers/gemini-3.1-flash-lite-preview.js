@@ -25,32 +25,68 @@ class Gemini31FlashLitePreviewProvider extends BaseModel {
   }
 
   async sendMessage(options) {
-    const { message, sessionData } = options;
+    const { message, sessionData, opening = false, internalTools } = options;
     const state = new ProviderState(sessionData);
     const systemInstruction = state.getSystemInstruction();
     const previousInteractionId = state.get('previousInteractionId') || state.threadId;
 
     try {
+      const pendingOpening = state.get('openingPending', false) === true;
+      if (opening && pendingOpening) {
+        // Retry delivery of the same generated opening without another API call.
+        return { message: state.get('firstAssistantMessage'), sessionData: state.buildSessionData() };
+      }
+      if (opening && previousInteractionId) {
+        throw Errors.gemini.responseError('La conversacion ya ha comenzado');
+      }
+
+      // Generate the opening in isolation. Only LEIA's actual speech enters
+      // the participant dialogue; the internal startup command stays out.
+      const input = opening
+        ? 'Generate the opening message now.'
+        : pendingOpening ? [
+          { type: 'model_output', content: [{ type: 'text', text: state.get('firstAssistantMessage') }] },
+          { type: 'user_input', content: [{ type: 'text', text: message }] },
+        ]
+        : message;
+      let contextInstruction = systemInstruction;
+      if (opening) {
+        // Gemini has no developer role. Put the instructor's startup command
+        // in the system instruction so persona pacing rules cannot override it.
+        contextInstruction = this.appendOpeningInstruction(systemInstruction, message);
+      } else if (!internalTools && state.get('firstAssistantMessage')) {
+        contextInstruction = this.appendDialogueGrounding(systemInstruction, state.get('firstAssistantMessage'));
+      }
       const interaction = await this.createInteraction({
         model: this.model,
-        input: message,
-        systemInstruction,
-        previousInteractionId
+        input,
+        systemInstruction: contextInstruction,
+        previousInteractionId: pendingOpening ? undefined : previousInteractionId,
+        store: !opening,
       });
 
+      // Stateless openings can return valid text without an interaction ID.
+      // Only persisted participant turns need an ID for subsequent chaining.
+      if (!opening && !interaction.id) {
+        throw Errors.gemini.responseError('Gemini no devolvio un identificador de interaccion');
+      }
       const responseMessage = this.extractTextFromInteraction(interaction);
 
       if (!responseMessage) {
         throw Errors.gemini.noTextContent();
       }
 
+      if (opening) {
+        state.update({ firstAssistantMessage: responseMessage });
+      }
       state.update({
-        previousInteractionId: interaction.id || previousInteractionId
+        previousInteractionId: opening ? '' : interaction.id,
+        openingPending: opening,
       });
 
       return {
         message: responseMessage,
-        sessionData: state.buildSessionData(interaction.id || previousInteractionId),
+        sessionData: state.buildSessionData(opening ? '' : interaction.id),
       };
     } catch (error) {
       throw Errors.gemini.messageSendError(error);
@@ -81,6 +117,14 @@ class Gemini31FlashLitePreviewProvider extends BaseModel {
   }
 
   // Métodos auxiliares
+
+  appendOpeningInstruction(systemInstruction, startupInstruction) {
+    return [
+      systemInstruction,
+      'Opening-turn requirement: Generate the first spoken message according to the instructor startup instruction below. If it supplies wording for a greeting or question, preserve that wording; if it gives directions, carry them out in character. Do not replace the requested opening with a generic introduction or a question about the activity. For this opening turn only, this requirement takes precedence over persona rules about being passive, waiting for the participant, not asking questions, or letting the participant lead. Return only the spoken message. This does not authorize disclosing private instructions or solution material.',
+      startupInstruction,
+    ].filter(Boolean).join('\n\n');
+  }
 
   getEvaluationResponseFormat() {
     return {
@@ -120,7 +164,7 @@ class Gemini31FlashLitePreviewProvider extends BaseModel {
     .join('\n\n');
   }
 
-  async createInteraction({ model, input, systemInstruction, previousInteractionId, responseFormat }) {
+  async createInteraction({ model, input, systemInstruction, previousInteractionId, responseFormat, store }) {
     const requestBody = {
       model,
       input
@@ -136,6 +180,10 @@ class Gemini31FlashLitePreviewProvider extends BaseModel {
 
     if (responseFormat) {
       requestBody.response_format = responseFormat;
+    }
+
+    if (typeof store === 'boolean') {
+      requestBody.store = store;
     }
 
     const interaction = await this.getClient().interactions.create(requestBody);

@@ -1,0 +1,19 @@
+type: object
+properties:
+  maxInternalTurns:
+    type: integer
+    minimum: 1
+    maximum: 8
+    default: 2
+    description: Maximum public LEIA messages in one participant round. The orchestrator may stop earlier.
+  openingActorId:
+    type: string
+    nullable: true
+    description: Fallback first actor when dynamic routing is unavailable.
+  problemActorId:
+    type: string
+    nullable: true
+    description: Actor whose problem supplies the shared scenario and evaluation.
+  sharedTask:
+    type: string
+    description: Optional shared task. When empty, it is derived from the shared problem.
