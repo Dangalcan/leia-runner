@@ -1,11 +1,18 @@
 type: object
 properties:
+  evaluationMode:
+    type: string
+    enum: [classic, rubric]
+    example: rubric
   score:
     type: number
     example: 8.5
   evaluation:
     type: string
     example: The solution is mostly correct, with minor omissions.
+  rubricEvaluation:
+    type: object
+    description: Structured rubric breakdown when evaluationMode is rubric
 required:
   - score
   - evaluation

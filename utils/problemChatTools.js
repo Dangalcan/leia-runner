@@ -3,11 +3,24 @@ const UNSUPPORTED_STRICT_SCHEMA_KEYWORDS = new Set(['$id', '$schema', 'uniqueIte
 function toOpenAiStrictSchema(value) {
   if (Array.isArray(value)) return value.map(toOpenAiStrictSchema);
   if (!value || typeof value !== 'object') return value;
-  return Object.fromEntries(
+  const result = Object.fromEntries(
     Object.entries(value)
       .filter(([key]) => !UNSUPPORTED_STRICT_SCHEMA_KEYWORDS.has(key))
       .map(([key, child]) => [key, toOpenAiStrictSchema(child)]),
   );
+  if (
+    result.type === 'object' &&
+    result.additionalProperties === false &&
+    result.properties &&
+    typeof result.properties === 'object'
+  ) {
+    const propertyKeys = Object.keys(result.properties);
+    if (propertyKeys.length > 0) {
+      const existingRequired = Array.isArray(result.required) ? result.required : [];
+      result.required = Array.from(new Set([...existingRequired, ...propertyKeys]));
+    }
+  }
+  return result;
 }
 
 function normalizeTools(tools) {

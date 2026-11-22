@@ -1,6 +1,12 @@
 const Errors = require('../../utils/errors');
 const Prompts = require('../../utils/prompts');
 const ProviderState = require('../providerState');
+const {
+  RUBRIC_EVALUATION_SYSTEM_PROMPT,
+  buildRubricEvaluationPrompt,
+  buildRubricEvaluationSchemas,
+  scoreAndNormalizeRubricEvaluation,
+} = require('../../utils/rubricEvaluation');
 
 class BaseModel {
   constructor() {
@@ -125,6 +131,31 @@ class BaseModel {
     }
   }
 
+  /**
+   * Evalúa una sesión/solución usando una rúbrica estructurada
+   * @param {Object} options
+   * @param {Object} options.rubric - Definición de rúbrica v1
+   * @param {Object} options.context - Salidas de runtime (currentStage / previousStage)
+   * @param {string} options.language - Idioma de la retroalimentación
+   * @returns {Promise<Object>} - { evaluationMode: 'rubric', score, evaluation, rubricEvaluation }
+   */
+  async evaluateWithRubric({ rubric, context = {}, language = 'en' }) {
+    try {
+      const prompt = buildRubricEvaluationPrompt({ rubric, context, language });
+      const { zodSchema, jsonSchema, schemaName } = buildRubricEvaluationSchemas(rubric);
+      const rawOutput = await this.generateStructuredEvaluationResponse({
+        prompt,
+        systemPrompt: RUBRIC_EVALUATION_SYSTEM_PROMPT,
+        zodSchema,
+        jsonSchema,
+        schemaName,
+      });
+      return scoreAndNormalizeRubricEvaluation(rubric, rawOutput);
+    } catch (error) {
+      throw Errors.baseModel.evaluationError(error);
+    }
+  }
+
  // To be implemented by each provider
 
   /**
@@ -172,6 +203,10 @@ class BaseModel {
    */
   generateEvaluationResponse() {
     throw new Error('Method generateEvaluationResponse must be implemented by subclasses');
+  }
+
+  generateStructuredEvaluationResponse() {
+    throw new Error('Method generateStructuredEvaluationResponse must be implemented by subclasses');
   }
 }
 

@@ -116,6 +116,23 @@ class Gemini31FlashLitePreviewProvider extends BaseModel {
     return JSON.parse(this.sanitizeJsonResponse(responseText));
   }
 
+  async generateStructuredEvaluationResponse({ prompt, systemPrompt, jsonSchema }) {
+    const interaction = await this.createInteraction({
+      model: this.evaluationModel,
+      input: prompt,
+      systemInstruction: systemPrompt,
+      responseFormat: jsonSchema,
+    });
+
+    const responseText = this.extractTextFromInteraction(interaction);
+
+    if (!responseText) {
+      throw Errors.gemini.noEvaluationContent();
+    }
+
+    return JSON.parse(this.sanitizeJsonResponse(responseText));
+  }
+
   // Métodos auxiliares
 
   appendOpeningInstruction(systemInstruction, startupInstruction) {

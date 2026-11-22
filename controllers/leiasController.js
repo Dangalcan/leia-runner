@@ -55,6 +55,8 @@ module.exports.createLeia = async function createLeia(req, res) {
       solution: leia.spec?.problem?.spec?.solution || '',
       solutionFormat: leia.spec?.problem?.spec?.solutionFormat || 'text',
       evaluationPrompt: leia.spec?.problem?.spec?.evaluationPrompt || '',
+      rubric: leia.spec?.rubric ? JSON.stringify(leia.spec.rubric) : '',
+      language: language || 'en',
       toolFunctionsEnabled: toolFunctionsEnabled ? 'true' : 'false',
     });
 

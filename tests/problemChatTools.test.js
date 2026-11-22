@@ -40,4 +40,18 @@ describe('problem-chat tools', () => {
     expect(parameters.properties.levels.uniqueItems).toBe(true);
     expect(normalizeTools([{ name: 'local', parameters }])[0].parameters).toBe(parameters);
   });
+
+  test('ensures optional properties are added to required in strict additionalProperties:false objects', () => {
+    const parameters = {
+      type: 'object',
+      additionalProperties: false,
+      required: ['sections'],
+      properties: {
+        evaluationPrompt: { type: 'string' },
+        sections: { type: 'array', items: { type: 'string' } },
+      },
+    };
+    const strict = normalizeTools([{ name: 'apply_rubric', strict: true, parameters }])[0].parameters;
+    expect(strict.required).toEqual(['sections', 'evaluationPrompt']);
+  });
 });
