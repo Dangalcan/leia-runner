@@ -6,6 +6,21 @@ properties:
   result:
     type: string
     example: Student solution text
+  evaluationMode:
+    type: string
+    enum: [classic, rubric]
+    default: classic
+  rubric:
+    type: object
+    description: Structured rubric v1 definition (optional if stored in session metadata)
+  context:
+    type: object
+    description: Runtime stage outputs for rubric evaluation placeholders
+  language:
+    type: string
+    example: en
+  runnerConfiguration:
+    type: object
+    description: Optional provider/BYOK fallback configuration when session cache is unavailable
 required:
   - sessionId
-  - result

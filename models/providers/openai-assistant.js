@@ -178,6 +178,26 @@ class OpenAIAssistantProvider extends BaseModel {
       throw error;
     }
   }
+
+  async evaluateWithRubric({ rubric, context = {}, language = 'en' }) {
+    const {
+      RUBRIC_EVALUATION_SYSTEM_PROMPT,
+      buildRubricEvaluationPrompt,
+      scoreAndNormalizeRubricEvaluation,
+    } = require('../../utils/rubricEvaluation');
+
+    const prompt = `${buildRubricEvaluationPrompt({ rubric, context, language })}\n\nRespond ONLY with a valid JSON object matching:\n{\n  "summary": "...",\n  "sections": [{ "title": "...", "criteria": [{ "name": "...", "selectedLevel": "...", "justification": "..." }] }]\n}`;
+    const response = await this.openai.chat.completions.create({
+      model: process.env.OPENAI_EVALUATION_MODEL || 'gpt-5.4-mini',
+      messages: [
+        { role: 'system', content: RUBRIC_EVALUATION_SYSTEM_PROMPT },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+    });
+    const rawOutput = JSON.parse(response.choices[0].message.content);
+    return scoreAndNormalizeRubricEvaluation(rubric, rawOutput);
+  }
 }
 
 module.exports = new OpenAIAssistantProvider(); 

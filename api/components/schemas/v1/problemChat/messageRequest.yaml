@@ -14,6 +14,9 @@ properties:
         description:
           type: string
           example: Returns the current problem spec.
+        strict:
+          type: boolean
+          description: Enables strict Structured Outputs for this function tool.
         parameters:
           type: object
           description: JSON Schema describing the tool input parameters.

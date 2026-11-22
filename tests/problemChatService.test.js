@@ -28,4 +28,24 @@ describe('problem chat authoring instructions', () => {
     expect(prompt).toContain('You cannot author or edit the base Behaviour resource');
     expect(prompt).toContain('You may still use extends, overrides or constrainedTo');
   });
+
+  it('omits rubric instructions when apply_rubric is not enabled and includes them when enabled', () => {
+    const withoutRubric = problemChatService.buildSystemPrompt([
+      { name: 'list_problems' },
+      { name: 'list_behaviours' },
+      { name: 'list_personas' },
+    ]);
+    expect(withoutRubric).toContain('made of three resources');
+    expect(withoutRubric).not.toContain('apply_rubric');
+
+    const withRubric = problemChatService.buildSystemPrompt([
+      { name: 'list_problems' },
+      { name: 'list_behaviours' },
+      { name: 'list_personas' },
+      { name: 'apply_rubric' },
+    ]);
+    expect(withRubric).toContain('made of four resources');
+    expect(withRubric).toContain('apply_rubric');
+    expect(withRubric).toContain('{{rubric.criteria}}');
+  });
 });
