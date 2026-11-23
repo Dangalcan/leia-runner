@@ -6,6 +6,11 @@ properties:
   opening:
     type: boolean
     description: Mark an internal startup request so supported providers keep startup instructions out of participant history. Cannot be combined with toolResults.
+  context:
+    type: string
+    maxLength: 4000
+    description: Hidden context for this turn, encoded as a separate untrusted user-role item right before the participant message. Ignored with opening or toolResults. Providers that used it answer with contextApplied true; the others ignore it.
+    example: '[Automatic context from the code editor. Not written by the student.] ...'
   tools:
     type: array
     items:
