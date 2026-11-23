@@ -288,6 +288,35 @@ class OpenAIResponsesProvider extends BaseModel {
         }
     }
 
+    async generateStructuredEvaluationResponse({ prompt, systemPrompt, zodSchema, schemaName }) {
+        try {
+            const response = await this.getClient().responses.parse({
+                model: this.evaluationModel,
+                input: [
+                    {
+                        role: 'system',
+                        content: systemPrompt,
+                    },
+                    {
+                        role: 'user',
+                        content: prompt,
+                    },
+                ],
+                text: {
+                    format: zodTextFormat(zodSchema, schemaName),
+                },
+            });
+
+            if (!response.output_parsed) {
+                throw Errors.openAI.noEvaluation();
+            }
+
+            return response.output_parsed;
+        } catch (error) {
+            throw Errors.openAI.evaluationError(error);
+        }
+    }
+
     // Métodos auxiliares
 
     extractResponseText(response) {

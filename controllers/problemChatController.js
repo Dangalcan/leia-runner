@@ -1,6 +1,8 @@
 const { randomUUID } = require('crypto');
 const problemChatService = require('../services/problemChatService');
 
+const errorStatus = (error) => error.statusCode || error.status || error.response?.status || 500;
+
 /**
  * Open a problem-chat session. Body: { runnerConfiguration: { modelName, apiKeyId, apiKeyRequesterId } }
  * POST /api/v1/problems/chat/session
@@ -13,7 +15,7 @@ const openProblemChat = async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     console.error('Error opening problem chat:', error);
-    res.status(error.statusCode || 500).json({ error: 'Failed to open problem chat', message: error.message });
+    res.status(errorStatus(error)).json({ error: 'Failed to open problem chat', message: error.message });
   }
 };
 
@@ -31,7 +33,7 @@ const uploadProblemChatFile = async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     console.error('Error uploading problem-chat file:', error);
-    res.status(error.statusCode || 500).json({ error: 'Failed to upload file', message: error.message });
+    res.status(errorStatus(error)).json({ error: 'Failed to upload file', message: error.message });
   }
 };
 
@@ -52,7 +54,7 @@ const sendProblemChatMessage = async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     console.error('Error in problem-chat message:', error);
-    res.status(error.statusCode || 500).json({ error: 'Failed to process message', message: error.message });
+    res.status(errorStatus(error)).json({ error: 'Failed to process message', message: error.message });
   }
 };
 
