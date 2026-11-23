@@ -107,6 +107,35 @@ class OllamaProvider extends BaseModel {
     }
   }
 
+  async generateStructuredEvaluationResponse({ prompt, systemPrompt, jsonSchema }) {
+    try {
+      const response = await this.createChatCompletion({
+        model: this.evaluationModel,
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        format: jsonSchema,
+      });
+
+      const responseMessage = this.extractAssistantMessage(response);
+
+      if (!responseMessage) {
+        throw Errors.ollama.noEvaluationContent();
+      }
+
+      return JSON.parse(this.sanitizeJsonResponse(responseMessage));
+    } catch (error) {
+      throw Errors.ollama.evaluationError(error);
+    }
+  }
+
   // Métodos auxiliares
 
   async createChatCompletion({ model, messages, format }) {

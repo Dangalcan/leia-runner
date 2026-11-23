@@ -74,6 +74,8 @@ paths:
     $ref: './paths/v1/problem-chat/_chatId-files.yaml'
   /v1/problems/chat/{chatId}/messages:
     $ref: './paths/v1/problem-chat/_chatId-messages.yaml'
+  /v1/conversation-dynamics/evaluate:
+    $ref: './paths/v1/conversation-dynamics/evaluate.yaml'
   /v1/supervisor:
     $ref: './paths/v1/supervisor/index.yaml'
   /v1/revoke:

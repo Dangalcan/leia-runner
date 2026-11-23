@@ -29,6 +29,8 @@ describe('ALMA Provider Unit Tests', () => {
     originalFetch = global.fetch;
     global.fetch = vi.fn();
 
+    vi.stubEnv('ALMA_BASE_URL', BASE_URL);
+    vi.stubEnv('ALMA_MODEL', 'example/Primary-Model');
     provider = new AlmaProvider();
     provider.setApiKey(API_KEY);
     provider.setBaseURL(BASE_URL);
@@ -121,13 +123,39 @@ describe('ALMA Provider Unit Tests', () => {
       expect(sessionData.providerState.model).toBe(provider.model);
     });
 
-    test('uses the base URL injected from the LEIA API key, without trailing slash', async () => {
-      provider.setBaseURL('https://alma.example.test/api/models/other-model/v1/');
-      global.fetch.mockResolvedValueOnce(okResponse('Hi'));
+    test('discovers and caches the model ID for the base URL selected by the API key', async () => {
+      const url = 'https://alma.example.test/api/models/other-model/v1';
+      provider.setBaseURL(`${url}/`);
+      global.fetch
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [{ id: 'example/Other-Model' }] }) })
+        .mockResolvedValue(okResponse('Hi'));
 
       await provider.sendMessage(defaultOptions);
+      await provider.sendMessage(defaultOptions);
 
-      expect(lastRequest().url).toBe('https://alma.example.test/api/models/other-model/v1/chat/completions');
+      expect(global.fetch).toHaveBeenCalledTimes(3);
+      expect(global.fetch).toHaveBeenNthCalledWith(1, `${url}/models`, expect.objectContaining({
+        headers: { apikey: API_KEY }, redirect: 'error',
+      }));
+      expect(lastRequest()).toMatchObject({
+        url: `${url}/chat/completions`, body: { model: 'example/Other-Model' },
+        init: { redirect: 'error' },
+      });
+    });
+
+    test('rejects a model URL outside the configured ALMA origins', () => {
+      expect(() => provider.setBaseURL('https://other.example.test/api/models/model/v1')).toThrow('configured ALMA origin');
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    test('retries model discovery after a transient failure', async () => {
+      provider.setBaseURL('https://alma.us.es/api/models/other-model/v1');
+      global.fetch
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [{ id: 'example/Other-Model' }] }) })
+        .mockResolvedValueOnce(okResponse('Hi'));
+      await expect(provider.sendMessage(defaultOptions)).rejects.toThrow('Error sending message to ALMA');
+      await expect(provider.sendMessage(defaultOptions)).resolves.toMatchObject({ message: 'Hi' });
     });
 
     test('rejects with 400 when sessionId is missing, before calling ALMA', async () => {

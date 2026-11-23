@@ -11,6 +11,7 @@ const problemChatController = require('../controllers/problemChatController');
 const supervisorController = require('../controllers/supervisorController');
 const imageGenerationController = require('../controllers/imageGenerationController');
 const multiLeiasController = require('../controllers/multiLeiasController');
+const conversationDynamicsController = require('../controllers/conversationDynamicsController');
 const multer = require('multer');
 const { bearerAuth } = require('../utils/auth');
 
@@ -64,5 +65,6 @@ router.post('/problems/chat/:chatId/messages', problemChatController.sendProblem
 // Background supervisor (stateless): observe an activity transcript window and
 // return flags (+ optional student nudge). Called fire-and-forget by the workbench.
 router.post('/supervisor', supervisorController.observe);
+router.post('/conversation-dynamics/evaluate', conversationDynamicsController.evaluate);
 
 module.exports = router;

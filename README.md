@@ -58,14 +58,15 @@ key and that base URL; the key's base URL overrides `ALMA_BASE_URL`.
 | Variable | Default | Purpose |
 |---|---|---|
 | `ALMA_BASE_URL` | `https://alma.us.es/api/models/llama-3.1-8b-instruct/v1` | Base URL when the API key has none |
-| `ALMA_MODEL` | `meta-llama/Llama-3.1-8B-Instruct` | Model id sent in the request body (the Hugging Face repo id, not the slug) |
+| `ALMA_MODEL` | `meta-llama/Llama-3.1-8B-Instruct` for the default URL | Optional model ID for the configured fallback URL |
 | `ALMA_MAX_TOKENS` | `1024` | Max tokens per reply |
 | `ALMA_EVALUATION_MAX_TOKENS` | `2048` | Max tokens per solution evaluation |
 | `ALMA_TEMPERATURE` | `0.7` | Sampling temperature |
 | `ALMA_HISTORY_MAX_MESSAGES` | `CONVERSATION_HISTORY_MAX_MESSAGES` | Messages kept in the history |
 
-`ALMA_MODEL` must be the model behind the base URL: the ALMA gateway routes by
-the slug in the URL and vLLM rejects any other model id.
+For a different API-key base URL, Runner discovers the model ID from
+`<base URL>/models` and uses the returned ID in completions. URL overrides must
+use HTTPS on `alma.us.es` or the configured ALMA origin.
 
 ## Session expiration
 

@@ -55,6 +55,8 @@ module.exports.createLeia = async function createLeia(req, res) {
       solution: leia.spec?.problem?.spec?.solution || '',
       solutionFormat: leia.spec?.problem?.spec?.solutionFormat || 'text',
       evaluationPrompt: leia.spec?.problem?.spec?.evaluationPrompt || '',
+      rubric: leia.spec?.rubric ? JSON.stringify(leia.spec.rubric) : '',
+      language: language || 'en',
       toolFunctionsEnabled: toolFunctionsEnabled ? 'true' : 'false',
     });
 
@@ -72,11 +74,14 @@ module.exports.createLeia = async function createLeia(req, res) {
 module.exports.sendLeiaMessage = async function sendLeiaMessage(req, res) {
   try {
     const sessionId = req.params.sessionId;
-    const { message, tools, toolResults } = req.body;
+    const { message, tools, toolResults, opening } = req.body;
 
     const hasToolResults = Array.isArray(toolResults) && toolResults.length > 0;
     if (!sessionId || (!message && !hasToolResults)) {
       return res.status(400).send({ error: 'SessionId and message (or toolResults) are required' });
+    }
+    if ((opening !== undefined && typeof opening !== 'boolean') || (opening === true && hasToolResults)) {
+      return res.status(400).send({ error: 'opening must be a boolean and cannot be combined with toolResults' });
     }
 
     // Check if session exists
@@ -86,7 +91,7 @@ module.exports.sendLeiaMessage = async function sendLeiaMessage(req, res) {
     }
 
     // Send message through the session service
-    const response = await sessionService.sendMessage(sessionId, message, { tools, toolResults });
+    const response = await sessionService.sendMessage(sessionId, message, { tools, toolResults, opening: opening === true });
 
     res.status(200).send(response);
   } catch (error) {
@@ -128,5 +133,9 @@ function buildInstructionsFromLeia(leia, language) {
     If the user clearly speaks to you in another language and is expecting a response in that language, respond in that language instead.
     `;
 
-  return [languageInstruction, behaviourDescription].filter(Boolean).join('\n\n');
+  const stopping = leia.spec?.behaviour?.spec?.conversationDynamics?.stoppingCondition;
+  const dynamics = stopping?.enabled === true
+    ? `Conversation stopping condition: ${stopping.config.condition}. When met, conclude naturally and tell the student the conversation has ended.`
+    : '';
+  return [languageInstruction, behaviourDescription, dynamics].filter(Boolean).join('\n\n');
 }

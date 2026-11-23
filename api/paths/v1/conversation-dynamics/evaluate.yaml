@@ -1,0 +1,56 @@
+post:
+  summary: Evaluate the instructor stopping condition against a saved transcript
+  operationId: evaluateConversationStoppingCondition
+  security:
+    - bearerAuth: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required: [condition, transcript, runnerConfiguration]
+          properties:
+            runnerConfiguration:
+              type: object
+              required: [apiKeyId, apiKeyRequesterId, modelName]
+              properties:
+                provider:
+                  type: string
+                modelName:
+                  type: string
+                apiKeyId:
+                  type: string
+                apiKeyRequesterId:
+                  type: string
+            condition:
+              type: string
+              minLength: 1
+            behaviour:
+              type: string
+            transcript:
+              type: array
+              items:
+                type: object
+                required: [role, text]
+                properties:
+                  role:
+                    type: string
+                    enum: [student, leia]
+                  text:
+                    type: string
+  responses:
+    '200':
+      description: Structured stopping decision
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [satisfied]
+            properties:
+              satisfied:
+                type: boolean
+    '400':
+      description: Invalid condition or transcript
+    '500':
+      description: Decision generation failed; finishing stays locked

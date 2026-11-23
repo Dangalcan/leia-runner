@@ -182,6 +182,7 @@ class SessionService {
         sessionId,
         message,
         sessionData,
+        opening: options.opening === true,
         allowTools,
         tools: allowTools ? options.tools : undefined,
         toolResults: allowTools ? options.toolResults : undefined,
