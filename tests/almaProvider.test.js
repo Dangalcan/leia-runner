@@ -33,7 +33,6 @@ describe('ALMA Provider Unit Tests', () => {
     vi.stubEnv('ALMA_MODEL', 'example/Primary-Model');
     provider = new AlmaProvider();
     provider.setApiKey(API_KEY);
-    provider.setBaseURL(BASE_URL);
 
     vi.spyOn(provider.conversationStore, 'buildConversationForRequest').mockResolvedValue([
       { role: 'system', content: 'system prompt' },
@@ -141,6 +140,15 @@ describe('ALMA Provider Unit Tests', () => {
         url: `${url}/chat/completions`, body: { model: 'example/Other-Model' },
         init: { redirect: 'error' },
       });
+    });
+
+    test('uses the discovered model even when a key selects the fallback URL', async () => {
+      provider.setBaseURL(BASE_URL);
+      global.fetch
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [{ id: 'example/Discovered' }] }) })
+        .mockResolvedValueOnce(okResponse('Hi'));
+      await provider.sendMessage(defaultOptions);
+      expect(lastRequest().body.model).toBe('example/Discovered');
     });
 
     test('rejects a model URL outside the configured ALMA origins', () => {

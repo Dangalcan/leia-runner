@@ -50,12 +50,10 @@ class AlmaProvider extends BaseModel {
     // Model id sent in the request body. vLLM answers to the raw Hugging Face
     // repo id, which is not the URL slug of the base URL.
     const configuredUrl = parseModelBaseUrl(process.env.ALMA_BASE_URL || DEFAULT_BASE_URL);
-    this.defaultBaseUrl = configuredUrl.baseUrl;
     this.allowedOrigins = new Set([ALMA_ORIGIN, configuredUrl.origin]);
-    this.defaultModel = process.env.ALMA_MODEL ||
-      (this.defaultBaseUrl === DEFAULT_BASE_URL ? DEFAULT_MODEL : null);
-    this.baseUrl = this.defaultBaseUrl;
-    this.model = this.defaultModel;
+    this.baseUrl = configuredUrl.baseUrl;
+    this.model = process.env.ALMA_MODEL ||
+      (this.baseUrl === DEFAULT_BASE_URL ? DEFAULT_MODEL : null);
     this.modelLookup = null;
     this.maxTokens = readPositiveInt('ALMA_MAX_TOKENS', 1024);
     // Evaluations return Markdown inside JSON, which a short limit truncates.
@@ -69,11 +67,9 @@ class AlmaProvider extends BaseModel {
     if (!this.allowedOrigins.has(origin)) {
       throw new Error('ALMA base URL must use a configured ALMA origin');
     }
-    if (baseUrl !== this.baseUrl) {
-      this.baseUrl = baseUrl;
-      this.model = baseUrl === this.defaultBaseUrl ? this.defaultModel : null;
-      this.modelLookup = null;
-    }
+    this.baseUrl = baseUrl;
+    this.model = null;
+    this.modelLookup = null;
   }
 
   // Required by BaseModel
