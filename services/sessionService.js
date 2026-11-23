@@ -145,6 +145,9 @@ class SessionService {
         message,
         sessionData,
         opening: options.opening === true,
+        // Hidden per-turn context. Providers that support it answer with
+        // `contextApplied: true`; the others ignore it.
+        context: typeof options.context === 'string' ? options.context : undefined,
         allowTools,
         tools: allowTools ? options.tools : undefined,
         toolResults: allowTools ? options.toolResults : undefined,

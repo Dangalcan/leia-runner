@@ -1,6 +1,9 @@
 const sessionService = require('../services/sessionService');
 const modelManager = require('../models/modelManager');
 
+// Upper bound of the optional hidden `context` sent along a participant message.
+const MAX_CONTEXT_LENGTH = 4000;
+
 module.exports.createLeia = async function createLeia(req, res) {
   try {
     const { sessionId, leia, language } = req.body;
@@ -74,7 +77,7 @@ module.exports.createLeia = async function createLeia(req, res) {
 module.exports.sendLeiaMessage = async function sendLeiaMessage(req, res) {
   try {
     const sessionId = req.params.sessionId;
-    const { message, tools, toolResults, opening } = req.body;
+    const { message, tools, toolResults, opening, context } = req.body;
 
     const hasToolResults = Array.isArray(toolResults) && toolResults.length > 0;
     if (!sessionId || (!message && !hasToolResults)) {
@@ -82,6 +85,16 @@ module.exports.sendLeiaMessage = async function sendLeiaMessage(req, res) {
     }
     if ((opening !== undefined && typeof opening !== 'boolean') || (opening === true && hasToolResults)) {
       return res.status(400).send({ error: 'opening must be a boolean and cannot be combined with toolResults' });
+    }
+    // Optional hidden context for this turn (e.g. what the participant did in
+    // a widget since their last message). It never becomes participant text.
+    if (
+      context !== undefined &&
+      (typeof context !== 'string' || context.trim().length === 0 || context.length > MAX_CONTEXT_LENGTH)
+    ) {
+      return res.status(400).send({
+        error: `context must be a non-empty string of at most ${MAX_CONTEXT_LENGTH} characters`,
+      });
     }
 
     // Check if session exists
@@ -91,7 +104,12 @@ module.exports.sendLeiaMessage = async function sendLeiaMessage(req, res) {
     }
 
     // Send message through the session service
-    const response = await sessionService.sendMessage(sessionId, message, { tools, toolResults, opening: opening === true });
+    const response = await sessionService.sendMessage(sessionId, message, {
+      tools,
+      toolResults,
+      opening: opening === true,
+      context,
+    });
 
     res.status(200).send(response);
   } catch (error) {
