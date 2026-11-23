@@ -57,7 +57,7 @@ describe('hidden per-turn context', () => {
     const result = await sessions.sendMessage('session', 'hi', { context: note });
 
     expect(create.mock.calls[0][0].input).toEqual([
-      { role: 'developer', content: note },
+      { role: 'user', content: JSON.stringify({ context: note }) },
       { role: 'user', content: 'hi' },
     ]);
     expect(result).toEqual({ message: 'I see two tests failing.', contextApplied: true });
@@ -76,7 +76,7 @@ describe('hidden per-turn context', () => {
       tools: [{ name: 'codeEditor_read' }],
     });
 
-    expect(create.mock.calls[0][0].input[0]).toEqual({ role: 'developer', content: note });
+    expect(create.mock.calls[0][0].input[0]).toEqual({ role: 'user', content: JSON.stringify({ context: note }) });
     expect(result.contextApplied).toBe(true);
     expect(result.toolCalls).toHaveLength(1);
   });
@@ -93,7 +93,7 @@ describe('hidden per-turn context', () => {
 
     expect(create.mock.calls[1][0].input).toEqual([
       { role: 'assistant', content: opening },
-      { role: 'developer', content: note },
+      { role: 'user', content: JSON.stringify({ context: note }) },
       { role: 'user', content: 'hi' },
     ]);
   });
